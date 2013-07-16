@@ -1,0 +1,25 @@
+{-# LANGUAGE NoImplicitPrelude #-} 
+{-# LANGUAGE OverloadedStrings #-} 
+{-# OPTIONS_GHC -Wall #-}
+
+module Helpers where
+
+import Prelude (init, tail, (.), fst, (==), or, Int, Char)
+import Types
+import Data.Text (Text, singleton, length, concatMap, span)
+
+initOrBlank :: [a] -> [a]
+initOrBlank [] = []
+initOrBlank xs = init xs
+
+tailOrBlank :: [a] -> [a]
+tailOrBlank [] = []
+tailOrBlank xs = tail xs
+
+-- | 行の先頭空白数を得る
+indentLevel :: Line -> Int
+indentLevel = length . concatMap expandTab . fst . (span (\c -> (or [c == ' ', c == '\t'])))
+  where
+    expandTab :: Char -> Text
+    expandTab '\t' = "    "
+    expandTab c = singleton c
