@@ -1,7 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-} 
 {-# Language TemplateHaskell, QuasiQuotes, FlexibleContexts #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
-module Parser where
+module Parser (
+  getKind
+) where
 
 import Prelude
 import Text.Peggy
@@ -10,18 +13,27 @@ import Data.Text hiding (map, head, concatMap)
 import Types
 
 [peggy|
+identifier ::: Text
+  = [a-zA-Z0-9_-]+ { pack $1 }
+
+class_method_name ::: Text
+  = 'self.' [a-zA-Z0-9_-]+ { pack $1 }
+
 class :: Kind
-  = [ \t]* "class" [ \t]* [a-zA-Z0-9_-]+ [ \t]* { Class (pack $4) }
+  = [ \t]* "class" [ \t]* identifier [ \t]* { Class $3 }
 
 module :: Kind
-  = [ \t]* "module" [ \t]* [a-zA-Z0-9_-]+ [ \t]* { Module (pack $4) }
+  = [ \t]* "module" [ \t]* identifier [ \t]* { Module $3 }
 
 method :: Kind
-  = [ \t]* "def" [ \t]* [a-zA-Z0-9_-]+ [^a-zA-Z0-9_-] { Method (Just (pack $3)) }
+  = [ \t]* "def" [ \t]* identifier { Method (Just $3) }
   / [ \t]* "define_method" { Method Nothing }
 
+class_method :: Kind
+  = [ \t]* "def" [ \t]* class_method_name { ClassMethod (Just $3) }
+
 block :: Kind
-  = .* "do" [ \t]* { Block }
+  = (!"do" . )* "do" [ \t]* !. { Block }
 
 end :: Kind
   = [ \t]* "end" [ \t]* { End }
@@ -32,17 +44,27 @@ other :: Kind
 line :: Kind
   = class
   / module
+  / class_method
   / method
-  / block
   / end
+  / block
   / other
 |]
 
+-- |
+-- >>> getKind (pack "module Foo")
+-- Module "Foo"
+--
+-- >>> getKind (pack "def self.foo")
+-- ClassMethod (Just "foo")
+--
+-- >>> getKind (pack "def bar")
+-- Method (Just "bar")
+--
+-- >>> getKind (pack "define_method :bar do")
+-- Method Nothing
 getKind :: Text -> Kind
 getKind input = fromRight $ parseString line "<stdin>" $ unpack input
   where
     fromRight (Right x) = x
     fromRight (Left _) = error "kind can not be parsed"
-
-toCorner :: Text -> Corner
-toCorner orig = Corner (getKind orig) orig
