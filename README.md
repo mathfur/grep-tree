@@ -22,6 +22,19 @@ Usage
  2. copy foo.json to grep-tree directory.
  3. Open index.html by browser.
 
+Memo
+----
+```
+class => ':'
+module => '_'
+class method => '.'
+instance method => '#'
+block => '~'
+if => '\'
+other => '@'
+end => '/'
+```
+
 License
 -------
 Copyright &copy; 2012 mathfur
