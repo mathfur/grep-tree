@@ -71,7 +71,7 @@ getOpt = do
 -- | 種類*キーワード*原文*Grep結果
 data Corner = Corner Kind Text deriving (Show, Eq)
 
-data Kind = Class Word | Module Word | ClassMethod (Maybe Word) | Method (Maybe Word) | Block | If | Other | End deriving (Show, Eq)
+data Kind = Class Word | Module Word | ClassMethod (Maybe Word) | Method (Maybe Word) | Block | If | Other | CurrentLine | End deriving (Show, Eq)
 
 type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [FilePath] IO) a
 data CacheKey = GitGrepCache Word | ReadFileCache deriving (Show, Eq, Ord)
@@ -126,10 +126,11 @@ showCorner (Corner (ClassMethod (Just w)) _) = '.' `cons` w
 showCorner (Corner (ClassMethod Nothing) _) = ".()"
 showCorner (Corner (Method (Just w)) _) = '#' `cons` w
 showCorner (Corner (Method Nothing) _) = "#()"
-showCorner (Corner Block _) = "~"
-showCorner (Corner If _) = "\'"
-showCorner (Corner Other _) = "@"
-showCorner (Corner End _) = "/"
+showCorner (Corner Block _) = "B"
+showCorner (Corner If _) = "|"
+showCorner (Corner Other _) = "^"
+showCorner (Corner CurrentLine _) = "@"
+showCorner (Corner End _) = ">"
 
 showCorners :: [Corner] -> Text
 showCorners = intercalate "" . L.map showCorner

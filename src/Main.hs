@@ -127,6 +127,7 @@ getWord (Corner (Method w) _) = w
 getWord (Corner Block _) = Nothing
 getWord (Corner If _) = Nothing
 getWord (Corner Other _) = Nothing
+getWord (Corner CurrentLine _) = Nothing
 getWord (Corner End _) = Nothing
 
 haveWord :: Corner -> Bool
@@ -139,31 +140,33 @@ haveWord = isJust . getWord
 -- (Nothing,[])
 --
 -- >>> getCorners [pack "def foo", pack "  print 123", pack "end"] 1
--- (Just (Corner (Method (Just "foo")) "def foo"),[Corner (Method (Just "foo")) "def foo",Corner End "end"])
+-- (Just (Corner (Method (Just "foo")) "def foo"),[Corner (Method (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner End "end"])
 --
 -- >>> getCorners (map pack ["def bar", "  def foo", "    print 123", "  end", "end"]) 2
--- (Just (Corner (Method (Just "foo")) "  def foo"),[Corner (Method (Just "bar")) "def bar",Corner (Method (Just "foo")) "  def foo",Corner End "  end",Corner End "end"])
+-- (Just (Corner (Method (Just "foo")) "  def foo"),[Corner (Method (Just "bar")) "def bar",Corner (Method (Just "foo")) "  def foo",Corner CurrentLine "    print 123",Corner End "  end",Corner End "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 1
--- (Just (Corner (Method (Just "foo")) "def foo(s)"),[Corner (Method (Just "foo")) "def foo(s)",Corner End "end"])
+-- (Just (Corner (Method (Just "foo")) "def foo(s)"),[Corner (Method (Just "foo")) "def foo(s)",Corner CurrentLine "  print s",Corner End "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 4
--- (Nothing,[])
+-- (Nothing,[Corner CurrentLine "def bar(src)"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 5
--- (Just (Corner (Method (Just "bar")) "def bar(src)"),[Corner (Method (Just "bar")) "def bar(src)",Corner End "end"])
+-- (Just (Corner (Method (Just "bar")) "def bar(src)"),[Corner (Method (Just "bar")) "def bar(src)",Corner CurrentLine "  foo(src)",Corner End "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 6
--- (Just (Corner (Method (Just "bar")) "  def bar(src)"),[Corner (Module "Foo") "module Foo",Corner (Method (Just "bar")) "  def bar(src)",Corner End "  end",Corner End "end"])
+-- (Just (Corner (Method (Just "bar")) "  def bar(src)"),[Corner (Module "Foo") "module Foo",Corner (Method (Just "bar")) "  def bar(src)",Corner CurrentLine "    foo(src)",Corner End "  end",Corner End "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 10
--- (Nothing,[])
+-- (Nothing,[Corner CurrentLine "puts bar('13:45')"])
 getCorners :: [Line] -> Int -> (Maybe Corner, [Corner])
+getCorners [] _ = (Nothing, [])
 getCorners ls num = (primary_corner, all_corners)
     where
       up_corners = (getUpCorners (L.take (num + 1) ls))
       down_corners = (getDownCorners ((L.drop num) ls))
-      all_corners = up_corners ++ down_corners
+      current_corner = Corner CurrentLine (ls !! num)
+      all_corners = up_corners ++ [current_corner] ++ down_corners
 
       primary_corner = if (L.length up_corners == 0) then Nothing else (L.find haveWord $ reverse up_corners)
 
