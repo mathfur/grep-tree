@@ -13,12 +13,14 @@ You need cabal-dev.
  3. $ cabal-dev install --only-dependencies
  4. $ cabal-dev configure
  5. $ cabal-dev build
- 6. Add dist/build/grep-tree/grep-tree to PATH
+ 6. $ cabal-dev install
+ 7. Add dist/build/grep-tree/grep-tree to PATH
 
 Usage
 -----
- 1.
- 2.
+ 1. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=foo.json --wdiropt=(TARGET DIR)
+ 2. copy foo.json to grep-tree directory.
+ 3. Open index.html by browser.
 
 License
 -------
