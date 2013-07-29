@@ -71,7 +71,20 @@ getOpt = do
 -- | 種類*キーワード*原文*Grep結果
 data Corner = Corner Kind Text deriving (Show, Eq)
 
-data Kind = Class Word | Module Word | ClassMethod (Maybe Word) | Method (Maybe Word) | Block | If | Other | CurrentLine | End deriving (Show, Eq)
+          -- ruby kind
+data Kind = RbClass Word
+          | RbModule Word
+          | RbClassMethod (Maybe Word)
+          | RbMethod (Maybe Word)
+          | RbBlock
+          | RbIf
+          | RbOther
+          | RbEnd
+          -- js kind
+          | JsFunc (Maybe Word)
+          | JsEnd
+          | CurrentLine
+          deriving (Show, Eq)
 
 type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [FilePath] IO) a
 data CacheKey = GitGrepCache Word | ReadFileCache deriving (Show, Eq, Ord)
@@ -120,17 +133,20 @@ instance ToJSON Corner where
                                 ]
 
 showCorner :: Corner -> Text
-showCorner (Corner (Class w) _) = ':' `cons` w
-showCorner (Corner (Module w) _) = '_' `cons` w
-showCorner (Corner (ClassMethod (Just w)) _) = '.' `cons` w
-showCorner (Corner (ClassMethod Nothing) _) = ".()"
-showCorner (Corner (Method (Just w)) _) = '#' `cons` w
-showCorner (Corner (Method Nothing) _) = "#()"
-showCorner (Corner Block _) = "B"
-showCorner (Corner If _) = "|"
-showCorner (Corner Other _) = "^"
+showCorner (Corner (RbClass w) _) = ':' `cons` w
+showCorner (Corner (RbModule w) _) = '_' `cons` w
+showCorner (Corner (RbClassMethod (Just w)) _) = '.' `cons` w
+showCorner (Corner (RbClassMethod Nothing) _) = ".()"
+showCorner (Corner (RbMethod (Just w)) _) = '#' `cons` w
+showCorner (Corner (RbMethod Nothing) _) = "#()"
+showCorner (Corner RbBlock _) = "B"
+showCorner (Corner RbIf _) = "|"
+showCorner (Corner RbOther _) = "^"
+showCorner (Corner RbEnd _) = ">"
+showCorner (Corner (JsFunc (Just w)) _) = '#' `cons` w
+showCorner (Corner (JsFunc Nothing) _) = "#()"
+showCorner (Corner JsEnd _) = ">"
 showCorner (Corner CurrentLine _) = "@"
-showCorner (Corner End _) = ">"
 
 showCorners :: [Corner] -> Text
 showCorners = intercalate "" . L.map showCorner

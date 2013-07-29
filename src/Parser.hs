@@ -16,53 +16,75 @@ import Types
 identifier ::: Text
   = [a-zA-Z0-9_-]+ { pack $1 }
 
-class_method_name ::: Text
+-- ruby
+
+rb_class_method_name ::: Text
   = 'self.' [a-zA-Z0-9_-]+ { pack $1 }
 
-class :: Kind
-  = [ \t]* "class" [ \t]* identifier [ \t]* { Class $3 }
+rb_class :: Kind
+  = [ \t]* "class" [ \t]* identifier [ \t]* { RbClass $3 }
 
-module :: Kind
-  = [ \t]* "module" [ \t]* identifier [ \t]* { Module $3 }
+rb_module :: Kind
+  = [ \t]* "module" [ \t]* identifier [ \t]* { RbModule $3 }
 
-method :: Kind
-  = [ \t]* "def" [ \t]* identifier { Method (Just $3) }
-  / [ \t]* "define_method" { Method Nothing }
+rb_method :: Kind
+  = [ \t]* "def" [ \t]* identifier { RbMethod (Just $3) }
+  / [ \t]* "define_method" { RbMethod Nothing }
 
-class_method :: Kind
-  = [ \t]* "def" [ \t]* class_method_name { ClassMethod (Just $3) }
+rb_class_method :: Kind
+  = [ \t]* "def" [ \t]* rb_class_method_name { RbClassMethod (Just $3) }
 
-block :: Kind
-  = (!"do" . )* "do" [ \t]* !. { Block }
+rb_block :: Kind
+  = (!"do" . )* "do" [ \t]* !. { RbBlock }
 
-end :: Kind
-  = [ \t]* "end" [ \t]* { End }
+rb_end :: Kind
+  = [ \t]* "end" [ \t]* { RbEnd }
 
-other :: Kind
-  = .* { Other }
+-- js
+
+js_func :: Kind
+  = [ \t]* "function" [ \t]* identifier { JsFunc (Just $3) }
+  / [ \t]* identifier ':' [ \t]* 'function(' { JsFunc (Just $2) }
+
+js_end :: Kind
+  = [ \t]* "}" { JsEnd }
+
+rb_other :: Kind
+  = .* { RbOther }
 
 line :: Kind
-  = class
-  / module
-  / class_method
-  / method
-  / end
-  / block
-  / other
+  = rb_class
+  / rb_module
+  / rb_class_method
+  / rb_method
+  / rb_end
+  / rb_block
+  / js_func
+  / js_end
+  / rb_other
 |]
 
 -- |
 -- >>> getKind (pack "module Foo")
--- Module "Foo"
+-- RbModule "Foo"
 --
 -- >>> getKind (pack "def self.foo")
--- ClassMethod (Just "foo")
+-- RbClassMethod (Just "foo")
 --
 -- >>> getKind (pack "def bar")
--- Method (Just "bar")
+-- RbMethod (Just "bar")
+--
+-- >>> getKind (pack "  foo: function( arg ) {")
+-- JsFunc (Just "foo")
+--
+-- >>> getKind (pack "function bar( arg1, arg2 ) {")
+-- JsFunc (Just "bar")
+--
+-- >>> getKind (pack "  }")
+-- JsEnd
 --
 -- >>> getKind (pack "define_method :bar do")
--- Method Nothing
+-- RbMethod Nothing
 getKind :: Text -> Kind
 getKind input = fromRight $ parseString line "<stdin>" $ unpack input
   where

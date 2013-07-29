@@ -115,20 +115,22 @@ parseGrepResult line
       matched_string = ss !! 2
 
 getPrimaryWord :: Corner -> Maybe Word
-getPrimaryWord (Corner (Class _) _) = Nothing
-getPrimaryWord (Corner (Module _) _) = Nothing
+getPrimaryWord (Corner (RbClass _) _) = Nothing
+getPrimaryWord (Corner (RbModule _) _) = Nothing
 getPrimaryWord c = getWord c
 
 getWord :: Corner -> Maybe Word
-getWord (Corner (Class w) _) = Just w
-getWord (Corner (Module w) _) = Just w
-getWord (Corner (ClassMethod w) _) = w
-getWord (Corner (Method w) _) = w
-getWord (Corner Block _) = Nothing
-getWord (Corner If _) = Nothing
-getWord (Corner Other _) = Nothing
+getWord (Corner (RbClass w) _) = Just w
+getWord (Corner (RbModule w) _) = Just w
+getWord (Corner (RbClassMethod w) _) = w
+getWord (Corner (RbMethod w) _) = w
+getWord (Corner RbBlock _) = Nothing
+getWord (Corner RbIf _) = Nothing
+getWord (Corner RbOther _) = Nothing
+getWord (Corner RbEnd _) = Nothing
+getWord (Corner (JsFunc w) _) = w
+getWord (Corner JsEnd _) = Nothing
 getWord (Corner CurrentLine _) = Nothing
-getWord (Corner End _) = Nothing
 
 haveWord :: Corner -> Bool
 haveWord = isJust . getWord
@@ -140,22 +142,22 @@ haveWord = isJust . getWord
 -- (Nothing,[])
 --
 -- >>> getCorners [pack "def foo", pack "  print 123", pack "end"] 1
--- (Just (Corner (Method (Just "foo")) "def foo"),[Corner (Method (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner End "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "def foo"),[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def bar", "  def foo", "    print 123", "  end", "end"]) 2
--- (Just (Corner (Method (Just "foo")) "  def foo"),[Corner (Method (Just "bar")) "def bar",Corner (Method (Just "foo")) "  def foo",Corner CurrentLine "    print 123",Corner End "  end",Corner End "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "  def foo"),[Corner (RbMethod (Just "bar")) "def bar",Corner (RbMethod (Just "foo")) "  def foo",Corner CurrentLine "    print 123",Corner RbEnd "  end",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 1
--- (Just (Corner (Method (Just "foo")) "def foo(s)"),[Corner (Method (Just "foo")) "def foo(s)",Corner CurrentLine "  print s",Corner End "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "def foo(s)"),[Corner (RbMethod (Just "foo")) "def foo(s)",Corner CurrentLine "  print s",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 4
 -- (Nothing,[Corner CurrentLine "def bar(src)"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 5
--- (Just (Corner (Method (Just "bar")) "def bar(src)"),[Corner (Method (Just "bar")) "def bar(src)",Corner CurrentLine "  foo(src)",Corner End "end"])
+-- (Just (Corner (RbMethod (Just "bar")) "def bar(src)"),[Corner (RbMethod (Just "bar")) "def bar(src)",Corner CurrentLine "  foo(src)",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 6
--- (Just (Corner (Method (Just "bar")) "  def bar(src)"),[Corner (Module "Foo") "module Foo",Corner (Method (Just "bar")) "  def bar(src)",Corner CurrentLine "    foo(src)",Corner End "  end",Corner End "end"])
+-- (Just (Corner (RbMethod (Just "bar")) "  def bar(src)"),[Corner (RbModule "Foo") "module Foo",Corner (RbMethod (Just "bar")) "  def bar(src)",Corner CurrentLine "    foo(src)",Corner RbEnd "  end",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 10
 -- (Nothing,[Corner CurrentLine "puts bar('13:45')"])
@@ -217,4 +219,3 @@ getCornerLines ls = (0, indentLevel fstline, fstline) : incLNum (getCornerLines 
     (fstls@(fstline:_), rem) = L.break (\l -> (firstIndentLevel > indentLevel l) && (not $ isBlankLine l)) ls
     incLNum :: [(Int, Int, Line)] -> [(Int, Int, Line)]
     incLNum = map (\(i, idt, s) -> (i + L.length fstls, idt, s))
-
