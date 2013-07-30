@@ -4,7 +4,7 @@
 
 module Helpers where
 
-import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool)
+import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String)
 import Types
 import Parser
 import Data.Text (Text, singleton, length, concatMap, span, unpack)
@@ -34,3 +34,7 @@ isBlank c = (or [c == ' ', c == '\t'])
 
 toCorner :: Text -> Corner
 toCorner orig = Corner (getKind orig) orig
+
+dropFirstUnderScore :: String -> String
+dropFirstUnderScore ('_':cs) = cs
+dropFirstUnderScore cs = cs

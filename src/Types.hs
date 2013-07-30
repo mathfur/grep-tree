@@ -23,6 +23,7 @@ import Control.Monad.IO.Class
 type Lines = [Text]
 type Line = Text
 type Word = Text
+type Pattern = Text
 type Dir = FilePath
 
 data Tree = Tree {
@@ -71,18 +72,16 @@ getOpt = do
 -- | 種類*キーワード*原文*Grep結果
 data Corner = Corner Kind Text deriving (Show, Eq)
 
-          -- ruby kind
 data Kind = RbClass Word
           | RbModule Word
           | RbClassMethod (Maybe Word)
           | RbMethod (Maybe Word)
           | RbBlock
           | RbIf
-          | RbOther
           | RbEnd
-          -- js kind
           | JsFunc (Maybe Word)
           | JsEnd
+          | Other
           | CurrentLine
           deriving (Show, Eq)
 
@@ -141,7 +140,7 @@ showCorner (Corner (RbMethod (Just w)) _) = '#' `cons` w
 showCorner (Corner (RbMethod Nothing) _) = "#()"
 showCorner (Corner RbBlock _) = "B"
 showCorner (Corner RbIf _) = "|"
-showCorner (Corner RbOther _) = "^"
+showCorner (Corner Other _) = "^"
 showCorner (Corner RbEnd _) = ">"
 showCorner (Corner (JsFunc (Just w)) _) = '#' `cons` w
 showCorner (Corner (JsFunc Nothing) _) = "#()"

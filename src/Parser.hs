@@ -49,8 +49,8 @@ js_func :: Kind
 js_end :: Kind
   = [ \t]* "}" { JsEnd }
 
-rb_other :: Kind
-  = .* { RbOther }
+other :: Kind
+  = .* { Other }
 
 line :: Kind
   = rb_class
@@ -61,7 +61,7 @@ line :: Kind
   / rb_block
   / js_func
   / js_end
-  / rb_other
+  / other
 |]
 
 -- |
