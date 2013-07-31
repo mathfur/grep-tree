@@ -5,14 +5,13 @@ var margin = {top: 10, right: 200, bottom: 10, left: 40},
 var svg = d3.select("body")
             .append("svg")
             .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom);
+            .attr("height", height + margin.top + margin.bottom + width/10);
 
 var base = svg.append("g")
               .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
 var tree = d3.layout.tree()
-             .size([height, width + height/10])
-             .separation(function(a, b){ return 50});
+             .size([height, width + height/10]);
 
 var diagonal = d3.svg.diagonal()
                      .projection(function(d) { return [d.y, d.x + d.y / 10]; });
