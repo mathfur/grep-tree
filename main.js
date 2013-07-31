@@ -11,6 +11,7 @@ var base = svg.append("g")
               .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
 var tree = d3.layout.tree()
+             .separation(function(a, b) { return (a.fname == b.fname) ? 1 : 0.8 })
              .size([height, width + height/10]);
 
 var diagonal = d3.svg.diagonal()
