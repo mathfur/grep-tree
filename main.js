@@ -1,6 +1,7 @@
 var margin = {top: 10, right: 200, bottom: 10, left: 40},
-    width  = 1200 - margin.left - margin.right,
+    width  = 1400 - margin.left - margin.right,
     height = 800 - margin.top - margin.bottom;
+    offset_right = 300;
 
 var svg = d3.select("body")
             .append("svg")
@@ -12,7 +13,7 @@ var base = svg.append("g")
 
 var tree = d3.layout.tree()
              .separation(function(a, b) { return (a.fname == b.fname) ? 1 : 0.8 })
-             .size([height, width + height/10]);
+             .size([height, width + height/10 - offset_right]);
 
 var diagonal = d3.svg.diagonal()
                      .projection(function(d) { return [d.y, d.x + d.y / 10]; });
@@ -74,3 +75,15 @@ d3.json("foo.json", function(json) {
       })
       .attr("transform",  function(d){ return "translate(" + d.y + ",  " + (d.x + d.y / 10) + ")"; });
 });
+
+function getParam(){
+  var pairs = (location.href.split("?")[1] || "").split("&").map(function(pair){ return pair.split("=") });
+  return _.reduce(pairs, function(obj, e){
+    obj[e[0]] = e[1];
+    return obj
+  }, {});
+}
+
+function strToCode(str, max){
+  return +d3.range(str.length).map(function(i){ return str[i].charCodeAt().toString() }).join("") % max
+}
