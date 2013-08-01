@@ -13,6 +13,18 @@ var base = svg.append("g")
 
 var tree = d3.layout.tree()
              .separation(function(a, b) { return (a.fname == b.fname) ? 1 : 0.8 })
+             .children(function(a){
+               return a.children.filter(function(e){
+                 var ex_pattern = getParam("exclude");
+                 var in_pattern = getParam("include");
+
+                 function match(pattern){
+                   return (new RegExp(pattern, 'i')).test(e.fname);
+                 }
+
+                 return (!in_pattern || match(in_pattern)) && (!ex_pattern || !match(ex_pattern));
+               })
+             })
              .size([height, width + height/10 - offset_right]);
 
 var diagonal = d3.svg.diagonal()
@@ -81,12 +93,9 @@ d3.json("foo.json", function(json) {
       .attr("transform",  function(d){ return "translate(" + d.y + ",  " + (d.x + d.y / 10) + ")"; });
 });
 
-function getParam(){
+function getParam(key){
   var pairs = (location.href.split("?")[1] || "").split("&").map(function(pair){ return pair.split("=") });
-  return _.reduce(pairs, function(obj, e){
-    obj[e[0]] = e[1];
-    return obj
-  }, {});
+  return (_.find(pairs, function(pair){ return pair[0] == key }) || [])[1];
 }
 
 function strToCode(str, max){
