@@ -98,7 +98,7 @@ hGetLineToEOF hdl = do
 -- ("foo/bar.hs",123," foo bar")
 parseGrepResult :: Text -> (FilePath, Int, Text)
 parseGrepResult line
-  | L.length ss < 2 = error "fail to parse the result of grep"
+  | L.length ss < 2 = error "fail to parse the result of grep: " `append` line
   | otherwise     = (fn, num, matched_string)
     where
       ss = split (== ':') $ line
