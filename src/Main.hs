@@ -38,7 +38,17 @@ main = do
 toOutputTree :: (RandomGen g) => Tree -> Rand g OutputTree
 toOutputTree (Tree {..}) = do
     random_name <- randomName
-    OutputTree random_name primary_word search_word fname lnum corner_str <$> mapM toOutputTree children
+    children' <- mapM toOutputTree children
+    return $ OutputTree {
+               name = random_name,
+               primary_wordO = primary_word,
+               search_wordO = search_word,
+               fnameO = fname,
+               rails_directory = fnameToRailsDirectory fname,
+               lnumO = lnum,
+               cornersO = corner_str,
+               childrenO = children'
+             }
       where
         randomName :: (RandomGen g) => Rand g Text
         randomName = pack <$> (replicateM 20 $ getRandomR ('a', 'z'))
@@ -98,7 +108,7 @@ hGetLineToEOF hdl = do
 -- ("foo/bar.hs",123," foo bar")
 parseGrepResult :: Text -> (FilePath, Int, Text)
 parseGrepResult line
-  | L.length ss < 2 = error "fail to parse the result of grep: " `append` line
+  | L.length ss < 2 = error ("fail to parse the result of grep: " ++ unpack line)
   | otherwise     = (fn, num, matched_string)
     where
       ss = split (== ':') $ line

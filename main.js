@@ -19,6 +19,10 @@ var diagonal = d3.svg.diagonal()
                      .projection(function(d) { return [d.y, d.x + d.y / 10]; });
 
 var color = d3.scale.category20();
+var rails_directory_hue = d3.scale.ordinal()
+                                  .domain([null, "controller", "model", "view", "helper", "lib", "vendor", "config", "js", "stylesheet", "db"])
+                                  .rangeBands([0, 360]);
+// var gray_scale = d3.scale.linear().domain([0, 255]).range(["red", "blue"]);
 
 d3.json("foo.json", function(json) {
   var nodes = tree.nodes(json);
@@ -67,7 +71,8 @@ d3.json("foo.json", function(json) {
              .attr("height", function(e){ return real_box_height })
              .attr("rx", 3)
              .attr("ry", 3)
-             .style("fill", function(e){ return color(d.search_word) })
+             //.style("fill", function(e){ return gray_scale(strToCode(d.search_word || "", 255)) })
+             .style("fill", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
              .attr("x", function(e){ return offset_x })
              .attr("y", function(e){ return offset_y })
              .attr("fill-opacity", function(e){ return 0.3 })

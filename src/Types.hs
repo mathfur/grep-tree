@@ -42,6 +42,7 @@ data OutputTree = OutputTree {
                   fnameO :: FilePath,
                   lnumO :: Int,
                   cornersO :: Text,
+                  rails_directory :: Maybe RailsDirectory,
                   childrenO :: [OutputTree]
                   } deriving (Show, Eq)
 
@@ -85,6 +86,20 @@ data Kind = RbClass Word
           | CurrentLine
           deriving (Show, Eq)
 
+data RailsDirectory = RailsController
+                    | RailsModel
+                    | RailsView
+                    | RailsHelper
+                    | RailsPartialView
+                    | RailsLib
+                    | RailsVendor
+                    | RailsConfig
+                    | RailsJs
+                    | RailsStyleSheet
+                    | RailsDb
+                    | RailsTest
+                    deriving (Show, Eq)
+
 type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [FilePath] IO) a
 data CacheKey = GitGrepCache Word | ReadFileCache deriving (Show, Eq, Ord)
 
@@ -120,6 +135,7 @@ instance ToJSON OutputTree where
                                       "primary_word" .= primary_wordO,
                                       "search_word" .= search_wordO,
                                       "fname" .= fnameO,
+                                      "rails_directory" .= rails_directory,
                                       "lnum" .= lnumO,
                                       "corners" .= cornersO,
                                       "children" .= toJSON childrenO
@@ -130,6 +146,20 @@ instance ToJSON Corner where
                                 "kind" .= show kind,
                                 "original_text" .= orig
                                 ]
+
+instance ToJSON RailsDirectory where
+    toJSON RailsController  = "controller"
+    toJSON RailsModel       = "model"
+    toJSON RailsView        = "view"
+    toJSON RailsHelper      = "helper"
+    toJSON RailsPartialView = "partial_view"
+    toJSON RailsLib         = "lib"
+    toJSON RailsVendor      = "vendor"
+    toJSON RailsConfig      = "config"
+    toJSON RailsJs          = "js"
+    toJSON RailsStyleSheet  = "stylesheet"
+    toJSON RailsDb          = "db"
+    toJSON RailsTest        = "test"
 
 showCorner :: Corner -> Text
 showCorner (Corner (RbClass w) _) = ':' `cons` w

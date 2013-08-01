@@ -4,11 +4,13 @@
 
 module Helpers where
 
-import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String)
+import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String, otherwise, (||))
 import Types
 import Parser
 import Data.Text (Text, singleton, length, concatMap, span, unpack)
-import Data.List (all)
+import Data.List (all, isPrefixOf)
+import Data.Maybe
+import System.FilePath (FilePath)
 
 initOrBlank :: [a] -> [a]
 initOrBlank [] = []
@@ -38,3 +40,18 @@ toCorner orig = Corner (getKind orig) orig
 dropFirstUnderScore :: String -> String
 dropFirstUnderScore ('_':cs) = cs
 dropFirstUnderScore cs = cs
+
+fnameToRailsDirectory :: FilePath -> Maybe RailsDirectory
+fnameToRailsDirectory fn
+  | "app/controllers/" `isPrefixOf` fn    = Just RailsController
+  | "app/models/" `isPrefixOf` fn         = Just RailsModel
+  | "app/views/" `isPrefixOf` fn          = Just RailsView
+  | "app/helper/" `isPrefixOf` fn         = Just RailsHelper
+  | "lib/" `isPrefixOf` fn                = Just RailsLib
+  | "vendor/" `isPrefixOf` fn             = Just RailsVendor
+  | "config/" `isPrefixOf` fn             = Just RailsConfig
+  | "public/javascripts/" `isPrefixOf` fn = Just RailsJs
+  | "publis/stylesheets/" `isPrefixOf` fn = Just RailsStyleSheet
+  | "db/" `isPrefixOf` fn                 = Just RailsDb
+  | "test/" `isPrefixOf` fn || "spec/" `isPrefixOf` fn = Just RailsTest
+  | otherwise                             = Nothing
