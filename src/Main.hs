@@ -59,8 +59,8 @@ wordToTree :: FilePath -> Int -> Pattern -> TreeGenerator [Tree]
 wordToTree _ 0 _ = return []
 wordToTree wdir depth pattern = do
     results <- grepCommand wdir pattern
-    catMaybes <$> (forM results (\line -> do
-        let (path, ln, _) = parseGrepResult line
+    let results' = catMaybes $ map parseGrepResult results
+    catMaybes <$> (forM results' (\(path, ln, _) -> do
         let abs_path = wdir </> path
         cnt <- readFileThroughCache ReadFileCache abs_path
         let (primary_pattern, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
@@ -105,11 +105,15 @@ hGetLineToEOF hdl = do
 
 -- |
 -- >>> parseGrepResult (pack "foo/bar.hs:123: foo bar")
--- ("foo/bar.hs",123," foo bar")
-parseGrepResult :: Text -> (FilePath, Int, Text)
+-- Just ("foo/bar.hs",123," foo bar")
+--
+-- >>> parseGrepResult (pack "Binary file public/images/foo.jpg matches")
+-- Nothing
+parseGrepResult :: Text -> Maybe (FilePath, Int, Text)
 parseGrepResult line
-  | L.length ss < 2 = error ("fail to parse the result of grep: " ++ unpack line)
-  | otherwise     = (fn, num, matched_string)
+  | L.length ss < 2 = if ("Binary file" `isPrefixOf` line) then Nothing
+                                                           else error ("fail to parse the result of grep: " ++ unpack line)
+  | otherwise     = Just (fn, num, matched_string)
     where
       ss = split (== ':') $ line
       fn = unpack $ ss !! 0
