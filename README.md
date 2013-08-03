@@ -18,9 +18,11 @@ You need cabal-dev.
 
 Usage
 -----
- 1. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=input.json --wdiropt=(TARGET DIR)
- 2. copy input.json to grep-tree directory.
- 3. Open index.html by browser.
+ 1. $ cd (TARGET DIR)
+ 1. $ rake routes > rake_routes
+ 2. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=input.json --wdiropt=(TARGET DIR)
+ 3. copy input.json to grep-tree directory.
+ 4. Open index.html by browser.
 
 Memo
 ----
@@ -29,10 +31,10 @@ class => ':'
 module => '_'
 class method => '.'
 instance method => '#'
-block => '~'
-if => '\'
-other => '@'
-end => '/'
+block => 'B'
+if => '|'
+current line => '@'
+end => '>'
 ```
 
 License

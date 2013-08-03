@@ -4,13 +4,13 @@
 
 module Helpers where
 
-import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String, otherwise, (||))
+import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String, otherwise, (||), ($))
 import Types
 import Parser
 import Data.Text (Text, singleton, length, concatMap, span, unpack)
-import Data.List (all, isPrefixOf)
+import Data.List (all, isPrefixOf, break)
 import Data.Maybe
-import System.FilePath (FilePath)
+import System.FilePath (FilePath, takeBaseName)
 
 initOrBlank :: [a] -> [a]
 initOrBlank [] = []
@@ -55,3 +55,10 @@ fnameToRailsDirectory fn
   | "db/" `isPrefixOf` fn                 = Just RailsDb
   | "test/" `isPrefixOf` fn || "spec/" `isPrefixOf` fn = Just RailsTest
   | otherwise                             = Nothing
+
+-- |
+--
+-- >>> takeBaseName' "/foo/bar.baz.txt"
+-- "bar"
+takeBaseName' :: FilePath -> String
+takeBaseName' path = fst $ break (== '.') $ takeBaseName path

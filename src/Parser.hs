@@ -1,14 +1,16 @@
-{-# LANGUAGE OverloadedStrings #-} 
+{-# LANGUAGE OverloadedStrings #-}
 {-# Language TemplateHaskell, QuasiQuotes, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Parser (
-  getKind
+  getKind,
+  parseRakeRouteLine
 ) where
 
 import Prelude
 import Text.Peggy
-import Data.Text hiding (map, head, concatMap)
+import Data.Either
+import Data.Text hiding (map, head, concatMap, lines)
 
 import Types
 
@@ -62,6 +64,18 @@ line :: Kind
   / js_func
   / js_end
   / other
+
+-- route
+
+http_method ::: Text
+  = "GET" { pack "GET" }
+  / "POST" { pack "POST" }
+  / "PUT" { pack "PUT" }
+  / "DELETE" { pack "DELETE" }
+
+-- e.g. pages GET /pages(.:format) {:action=>"index", :controller=>"pages"}
+route_line :: RailsRoute
+  = identifier http_method [^ ]+ "{:action=>\"" identifier "\"," ":controller=>\"" identifier "\"}" { RailsRoute $1 $2 (pack $3) $5 $4 }
 |]
 
 -- |
@@ -90,3 +104,14 @@ getKind input = fromRight $ parseString line "<stdin>" $ unpack input
   where
     fromRight (Right x) = x
     fromRight (Left _) = error "kind can not be parsed"
+
+-- |
+--
+-- >>> parseRakeRouteLine []
+-- []
+--
+-- >>> parseRakeRouteLine (map pack ["pages GET /pages(.:format) {:action=>\"index\", :controller=>\"pages\"}"])
+-- [RailsRoute {namedRoute = "pages", httpMethod = "GET", routeMap = "/pages(.:format)", controllerName = "pages", actionName = "index"}]
+--
+parseRakeRouteLine :: [Line] -> [RailsRoute]
+parseRakeRouteLine input = rights $ map ((parseString route_line "<stdin>") . unpack) input

@@ -25,6 +25,11 @@ type Line = Text
 type Word = Text
 type Pattern = Text
 type Dir = FilePath
+type NamedRoute = Text
+type ControllerName = Text
+type ActionName = Text
+
+data Objective = RegexpObjective Pattern | WordObjective Word | NoObjective deriving (Show, Eq)
 
 data Tree = Tree {
           primary_word :: Maybe Text,
@@ -32,6 +37,7 @@ data Tree = Tree {
           fname :: FilePath,
           lnum :: Int,
           corners :: [Corner],
+          is_action :: Bool,
           children :: [Tree]
           } deriving (Show, Eq)
 
@@ -42,6 +48,7 @@ data OutputTree = OutputTree {
                   fnameO :: FilePath,
                   lnumO :: Int,
                   cornersO :: Text,
+                  is_actionO :: Bool,
                   rails_directory :: Maybe RailsDirectory,
                   childrenO :: [OutputTree]
                   } deriving (Show, Eq)
@@ -52,6 +59,14 @@ data Option  = Option {
                outputOpt :: String,
                wdirOpt :: String
              } deriving (Data, Show, Typeable)
+
+data RailsRoute = RailsRoute {
+                    namedRoute :: NamedRoute,
+                    httpMethod :: Text,
+                    routeMap :: Text,
+                    controllerName :: ControllerName, -- e.g. users_controller
+                    actionName :: ActionName
+                  } deriving (Show, Eq)
 
 option :: Option
 option = Option {
@@ -101,11 +116,11 @@ data RailsDirectory = RailsController
                     deriving (Show, Eq)
 
 type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [FilePath] IO) a
-data CacheKey = GitGrepCache Word | ReadFileCache deriving (Show, Eq, Ord)
+data CacheKey = GitGrepCache Word | FileCache deriving (Show, Eq, Ord)
 
-readFileThroughCache :: CacheKey -> FilePath -> TreeGenerator [Text]
-readFileThroughCache key path = do
-  ls <- readCache key path
+readFileThroughCache :: FilePath -> TreeGenerator [Text]
+readFileThroughCache path = do
+  ls <- readCache FileCache path
   case ls of
     Just inner -> return inner
     Nothing -> do
@@ -113,7 +128,7 @@ readFileThroughCache key path = do
       case cnt_or_error of
         Right cnt -> do
           let new_ls = lines cnt
-          writeCache key path new_ls
+          writeCache FileCache path new_ls
           return new_ls
         Left _ -> do
           lift $ tell [path]
@@ -135,8 +150,9 @@ instance ToJSON OutputTree where
                                       "primary_word" .= primary_wordO,
                                       "search_word" .= search_wordO,
                                       "fname" .= fnameO,
-                                      "rails_directory" .= rails_directory,
                                       "lnum" .= lnumO,
+                                      "is_action" .= is_actionO,
+                                      "rails_directory" .= rails_directory,
                                       "corners" .= cornersO,
                                       "children" .= toJSON childrenO
                                       ]

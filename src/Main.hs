@@ -26,6 +26,7 @@ import System.FilePath
 
 import Types
 import Helpers
+import Parser
 
 main :: IO ()
 main = do
@@ -52,6 +53,7 @@ toOutputTree (Tree {..}) = do
                fnameO = fname,
                rails_directory = fnameToRailsDirectory fname,
                lnumO = lnum,
+               is_actionO = is_action,
                cornersO = corner_str,
                childrenO = children'
              }
@@ -68,18 +70,31 @@ wordToTree wdir depth pattern = do
     let results' = catMaybes $ map parseGrepResult results
     catMaybes <$> (forM results' (\(path, ln, _) -> do
         let abs_path = wdir </> path
-        cnt <- readFileThroughCache ReadFileCache abs_path
-        let (primary_pattern, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
-        case primary_pattern of
-            Nothing -> (return $ Just $ Tree {
+        cnt <- readFileThroughCache abs_path
+        let (objective, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
+        case objective of
+            NoObjective -> (return $ Just $ Tree {
                                                primary_word = Nothing,
                                                search_word = pattern,
                                                fname = path,
                                                lnum = ln,
+                                               is_action = False,
                                                corners = all_corners,
                                                children = []
                                              })
-            Just next_pattern -> (do
+            WordObjective next_word -> (do
+              ts <- wordToTree wdir (depth - 1) next_word
+              is_action <- isAction wdir path next_word
+              return $ Just $ Tree {
+                                     primary_word = Just next_word,
+                                     search_word = pattern,
+                                     fname = path,
+                                     lnum = ln,
+                                     corners = all_corners,
+                                     is_action = is_action,
+                                     children = ts
+                                   })
+            RegexpObjective next_pattern -> (do
               ts <- wordToTree wdir (depth - 1) next_pattern
               return $ Just $ Tree {
                                      primary_word = Just next_pattern,
@@ -87,8 +102,18 @@ wordToTree wdir depth pattern = do
                                      fname = path,
                                      lnum = ln,
                                      corners = all_corners,
+                                     is_action = False,
                                      children = ts
                                    })))
+
+isAction :: FilePath -> FilePath -> Word -> TreeGenerator Bool
+isAction wdir path w = do
+    cnt <- readFileThroughCache (wdir </> "rake_routes")
+    let routes = parseRakeRouteLine cnt
+    return $ (flip L.any) routes (\route ->
+                                 ((controllerName route) :: Text) `append` "_controller" == ((pack $ takeBaseName' path))
+                                 &&
+                                 (((actionName route) :: Text) == w))
 
 grepCommand :: FilePath -> Word -> TreeGenerator [Text]
 grepCommand wdir w = do
@@ -129,31 +154,31 @@ parseGrepResult line
 -- |
 --
 -- >>> getPrimaryWord (map pack ["<div>", "  <%= foo %>", "</div>"]) 1 "/foo/bar.html.erb"
--- (Just "render.*bar",[])
+-- (RegexpObjective "render.*bar",[])
 --
 -- >>> getPrimaryWord (map pack ["def foo", "  print 123", "end"]) 1 "/foo/bar.rb"
--- (Just "foo",[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
+-- (WordObjective "foo",[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
 --
 -- >>> getPrimaryWord (map pack ["foo: function(e){", "  console.log(e)", "}"]) 1 "/foo/bar.js"
--- (Just "foo",[Corner (JsFunc (Just "foo")) "foo: function(e){",Corner CurrentLine "  console.log(e)",Corner JsEnd "}"])
+-- (WordObjective "foo",[Corner (JsFunc (Just "foo")) "foo: function(e){",Corner CurrentLine "  console.log(e)",Corner JsEnd "}"])
 --
-getPrimaryWord :: [Line] -> Int -> FilePath -> (Maybe Pattern, [Corner])
+getPrimaryWord :: [Line] -> Int -> FilePath -> (Objective, [Corner])
 getPrimaryWord ls dpt path
-   | not (hasExtension path)              = (Nothing, [])
-   | (ext == ".erb") || (ext == ".rhtml") = (Just $ "render.*" `append` basename, [])
+   | not (hasExtension path)              = (NoObjective, [])
+   | (ext == ".erb") || (ext == ".rhtml") = (RegexpObjective $ "render.*" `append` basename, [])
    | ext == ".js"                         = case primary_corner of
-                                              Just x -> (getWord x, all_corners)
-                                              Nothing -> (Nothing, all_corners)
+                                              Just x -> (wordToObj $ getWord x, all_corners)
+                                              Nothing -> (NoObjective, all_corners)
    | (ext == ".rb") || (ext == ".rake")   = case primary_corner of
-                                              Just (Corner (RbClass _) _) -> (Nothing, all_corners)
-                                              Just (Corner (RbModule _) _) -> (Nothing, all_corners)
-                                              Nothing -> (Nothing, all_corners)
-                                              Just x -> (getWord x, all_corners)
-   | otherwise                            = (Nothing, [])
+                                              Just (Corner (RbClass _) _) -> (NoObjective, all_corners)
+                                              Just (Corner (RbModule _) _) -> (NoObjective, all_corners)
+                                              Nothing -> (NoObjective, all_corners)
+                                              Just x -> (wordToObj $ getWord x, all_corners)
+   | otherwise                            = (NoObjective, [])
      where
        (primary_corner, all_corners) = getCorners ls dpt
        ext = pack $ takeExtension path
-       basename = pack $ dropFirstUnderScore $ fst $ L.break (== '.') $ takeBaseName path
+       basename = pack $ dropFirstUnderScore $ takeBaseName' path
 
 getWord :: Corner -> Maybe Word
 getWord (Corner (RbClass w) _) = Just w
@@ -167,6 +192,10 @@ getWord (Corner (JsFunc w) _) = w
 getWord (Corner JsEnd _) = Nothing
 getWord (Corner CurrentLine _) = Nothing
 getWord (Corner Other _) = Nothing
+
+wordToObj :: Maybe Word -> Objective
+wordToObj Nothing = NoObjective
+wordToObj (Just w) = WordObjective w
 
 haveWord :: Corner -> Bool
 haveWord = isJust . getWord
