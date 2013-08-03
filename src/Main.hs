@@ -32,7 +32,13 @@ main = do
     (w, depth, output, wdir) <- getOpt
     ((tree, _), err_files) <- runWriterT $ runStateT (wordToTree wdir depth (pack w)) (M.fromList [])
     output_trees <- evalRandIO $ mapM toOutputTree tree
-    let jsn = BLC.unpack $ encode $ toJSON $ object ["name" .= ("main" :: Text), "children" .= output_trees, "error_files" .= err_files]
+    let jsn = BLC.unpack $ encode $ toJSON $ object [
+                                                    "name" .= ("main" :: Text),
+                                                    "primary_word" .= pack w,
+                                                    "corners" .= pack w,
+                                                    "children" .= output_trees,
+                                                    "error_files" .= err_files
+                                                    ]
     writeFile output $ pack jsn
 
 toOutputTree :: (RandomGen g) => Tree -> Rand g OutputTree
