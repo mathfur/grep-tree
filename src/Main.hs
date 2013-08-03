@@ -55,6 +55,7 @@ toOutputTree (Tree {..}) = do
                lnumO = lnum,
                is_actionO = is_action,
                cornersO = corner_str,
+               around_textO = around_text,
                childrenO = children'
              }
       where
@@ -72,6 +73,8 @@ wordToTree wdir depth pattern = do
         let abs_path = wdir </> path
         cnt <- readFileThroughCache abs_path
         let (objective, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
+        let text_range = 8
+        around_text <- slice (ln - text_range) (ln + text_range) <$> L.zip [1..] <$> readFileThroughCache path
         case objective of
             NoObjective -> (return $ Just $ Tree {
                                                primary_word = Nothing,
@@ -80,6 +83,7 @@ wordToTree wdir depth pattern = do
                                                lnum = ln,
                                                is_action = False,
                                                corners = all_corners,
+                                               around_text = around_text,
                                                children = []
                                              })
             WordObjective next_word -> (do
@@ -91,6 +95,7 @@ wordToTree wdir depth pattern = do
                                      fname = path,
                                      lnum = ln,
                                      corners = all_corners,
+                                     around_text = around_text,
                                      is_action = is_action,
                                      children = ts
                                    })
@@ -102,6 +107,7 @@ wordToTree wdir depth pattern = do
                                      fname = path,
                                      lnum = ln,
                                      corners = all_corners,
+                                     around_text = around_text,
                                      is_action = False,
                                      children = ts
                                    })))

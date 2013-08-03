@@ -4,13 +4,12 @@
 
 module Helpers where
 
-import Prelude (init, tail, (.), fst, (==), or, Int, Char, Bool, String, otherwise, (||), ($))
+import Prelude hiding (length, concatMap, span)
 import Types
 import Parser
 import Data.Text (Text, singleton, length, concatMap, span, unpack)
-import Data.List (all, isPrefixOf, break)
-import Data.Maybe
-import System.FilePath (FilePath, takeBaseName)
+import Data.List (isPrefixOf)
+import System.FilePath (takeBaseName)
 
 initOrBlank :: [a] -> [a]
 initOrBlank [] = []
@@ -62,3 +61,19 @@ fnameToRailsDirectory fn
 -- "bar"
 takeBaseName' :: FilePath -> String
 takeBaseName' path = fst $ break (== '.') $ takeBaseName path
+
+-- |
+--
+-- >>> slice 2 3 [0, 1, 2, 3, 4]
+-- [2,3]
+--
+-- >>> slice (-2) 3 [0, 1, 2, 3, 4]
+-- [0,1,2,3]
+--
+-- >>> slice 3 6 [0, 1, 2, 3, 4]
+-- [3,4]
+slice :: Int -> Int -> [a] -> [a]
+slice start_ind end_ind ls = take len $ drop start_ind' $ ls
+  where
+    start_ind' = start_ind `max` 0
+    len = (end_ind - start_ind' + 1) `max` 0

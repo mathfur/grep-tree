@@ -90,7 +90,20 @@ d3.json("input.json", function(json) {
                         .attr("font-family", "trebuchet ms, helvetica, sans-serif")
                         .attr("text-anchor", "start")
                         .attr("font-size", font_size)
-                        .text(function(t){ return t });
+                        .text(function(t){ return t })
+                        .on("mouseover", function(){
+                            return tooltip.style("visibility", "visible");
+                        })
+                        .on("mousemove", function(){
+                            var inner = ""
+                            _.each(d.around_text || [], function(arr){ inner += "<pre><code>" + arr[0] + ": " + arr[1] + "</code></pre>"});
+                            return tooltip.style("top", (d3.event.pageY + 10) + "px")
+                                          .style("left",(d3.event.pageX - 100) + "px")
+                                          .html(inner);
+                        })
+                        .on("mouseout", function(){
+                            return tooltip.style("visibility", "hidden");
+                        });
 
            var real_box_width  = d3.max(text[0].map(function(e){ return e.getBBox().width; }));
            var real_box_height = d3.sum(text[0].map(function(e){ return e.getBBox().height; }));
@@ -107,6 +120,11 @@ d3.json("input.json", function(json) {
              .attr("y", function(e){ return offset_y })
              .attr("fill-opacity", function(e){ return 0.3 })
              .style("stroke-width", "0");
+
       })
       .attr("transform",  function(d){ return "translate(" + d.y + ",  " + (d.x + d.y / 10) + ")"; });
+
+    var tooltip = d3.select("body")
+                    .append('div')
+                    .attr('class', 'tooltip');
 });

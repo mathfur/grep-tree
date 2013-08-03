@@ -1,0 +1,17 @@
+path.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.5px;
+}
+
+div.tooltip {
+  background-color: #ccc;
+  border-radius: 4px;
+  border: 1px solid #222;
+
+  padding: 4px;
+
+  z-index: 10;
+  position: absolute;
+  visibility: hidden;
+}
