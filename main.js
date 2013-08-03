@@ -14,7 +14,7 @@ var base = svg.append("g")
 var tree = d3.layout.tree()
              .separation(function(a, b) { return (a.fname == b.fname) ? 1 : 0.8 })
              .children(function(a){
-               return a.children.filter(function(e){
+               var result_before_limit = a.children.filter(function(e){
                  var ex_pattern = getParam("exclude");
                  var in_pattern = getParam("include");
 
@@ -24,6 +24,13 @@ var tree = d3.layout.tree()
 
                  return (!in_pattern || match(in_pattern)) && (!ex_pattern || !match(ex_pattern));
                })
+
+               var remainders_num = _.max([result_before_limit.length - getParam("limit"), 0]);
+               var remainders = (0 < remainders_num) ? [{
+                 "name": "remainders", "label": ("rem:" + remainders_num), "children": []
+               }] : [];
+
+               return result_before_limit.slice(0, getParam("limit") || Infinity).concat(remainders);
              })
              .size([height, width + height/10 - offset_right]);
 
@@ -56,8 +63,7 @@ d3.json("input.json", function(json) {
       .enter()
       .append("g")
       .each(function(d){
-           //var texts = [d.primary_word, d.fname + ":" + d.lnum, d.corners].filter(function(e){ return e });
-           var texts = [d.corners + " " + d.fname + ":" + d.lnum];
+           var texts = [d.label || (d.corners + " " + d.fname + ":" + d.lnum)];
            var offset_x = 0; //(-1) * d3.max(texts, function(t){ return font_size * (t || "").length }) / 4;
            var offset_y = (-1) * (font_size * texts.length) / 2;
 
