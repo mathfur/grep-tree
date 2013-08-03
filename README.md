@@ -18,8 +18,8 @@ You need cabal-dev.
 
 Usage
 -----
- 1. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=foo.json --wdiropt=(TARGET DIR)
- 2. copy foo.json to grep-tree directory.
+ 1. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=input.json --wdiropt=(TARGET DIR)
+ 2. copy input.json to grep-tree directory.
  3. Open index.html by browser.
 
 Memo

@@ -36,7 +36,7 @@ var rails_directory_hue = d3.scale.ordinal()
                                   .rangeBands([0, 360]);
 // var gray_scale = d3.scale.linear().domain([0, 255]).range(["red", "blue"]);
 
-d3.json("foo.json", function(json) {
+d3.json("input.json", function(json) {
   var nodes = tree.nodes(json);
   var links = tree.links(nodes);
 
