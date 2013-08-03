@@ -1,6 +1,6 @@
 var margin = {top: 10, right: 200, bottom: 10, left: 40},
-    width  = 1400 - margin.left - margin.right,
-    height = 800 - margin.top - margin.bottom;
+    width  = (getParam("width") || 1400) - margin.left - margin.right,
+    height = (getParam("height") || 800) - margin.top - margin.bottom;
     offset_right = 300;
 
 var svg = d3.select("body")
@@ -92,12 +92,3 @@ d3.json("foo.json", function(json) {
       })
       .attr("transform",  function(d){ return "translate(" + d.y + ",  " + (d.x + d.y / 10) + ")"; });
 });
-
-function getParam(key){
-  var pairs = (location.href.split("?")[1] || "").split("&").map(function(pair){ return pair.split("=") });
-  return (_.find(pairs, function(pair){ return pair[0] == key }) || [])[1];
-}
-
-function strToCode(str, max){
-  return +d3.range(str.length).map(function(i){ return str[i].charCodeAt().toString() }).join("") % max
-}
