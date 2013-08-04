@@ -126,6 +126,9 @@ d3.json("input.json", function(json) {
                         })
                         .on("mouseout", function(){
                             return tooltip.style("visibility", "hidden");
+                        })
+                        .on("click", function(text){
+                           $('#fname-lnum-for-copy').val(d.fname + ":" + d.lnum);
                         });
 
            var real_box_width  = d3.max(text[0].map(function(e){ return e.getBBox().width; }));

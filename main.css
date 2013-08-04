@@ -15,3 +15,8 @@ div.tooltip {
   position: absolute;
   visibility: hidden;
 }
+
+input#fname-lnum-for-copy {
+  width: 800px;
+  margin: 3px;
+}
