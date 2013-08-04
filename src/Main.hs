@@ -127,7 +127,7 @@ grepCommand wdir w = do
    case ls of
      Just ls_ -> return ls_
      Nothing -> do
-       (_,hdl,_,_) <- liftIO $ runInteractiveProcess "git" ["grep", "-n", unpack w] (Just wdir) Nothing
+       (_,hdl,_,_) <- liftIO $ runInteractiveProcess "git" ["grep", "-n -w", unpack w] (Just wdir) Nothing
        liftIO $ hSetBinaryMode hdl False
        liftIO $ hSetBuffering hdl LineBuffering
        new_ls <- (liftIO (hGetLineToEOF hdl <* (liftIO $ hClose hdl)))
