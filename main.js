@@ -1,12 +1,13 @@
 var margin = {top: 10, right: 200, bottom: 10, left: 40},
     width  = (getParam("width") || 1400) - margin.left - margin.right,
     height = (getParam("height") || 800) - margin.top - margin.bottom;
-    offset_right = 300;
+    offset_right = 800;
+    offset_buttom = 300;
 
 var svg = d3.select("body")
             .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom + width/10);
+            .attr("width", width + margin.left + margin.right + offset_right)
+            .attr("height", height + margin.top + margin.bottom + width/10 + offset_buttom);
 
 var base = svg.append("g")
               .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
@@ -32,7 +33,7 @@ var tree = d3.layout.tree()
 
                return result_before_limit.slice(0, getParam("limit") || Infinity).concat(remainders);
              })
-             .size([height, width + height/10 - offset_right]);
+             .size([height, width + height/10]);
 
 var x_scale = function(x){
   var threshold = 500;
