@@ -38,6 +38,7 @@ data Tree = Tree {
           lnum :: Int,
           corners :: [Corner],
           is_action :: Bool,
+          is_filter_def :: Bool,
           around_text :: [(Int, Text)],
           children :: [Tree]
           } deriving (Show, Eq)
@@ -50,6 +51,7 @@ data OutputTree = OutputTree {
                   lnumO :: Int,
                   cornersO :: Text,
                   is_actionO :: Bool,
+                  is_filter_defO :: Bool,
                   rails_directory :: Maybe RailsDirectory,
                   around_textO :: [(Int, Text)],
                   childrenO :: [OutputTree]
@@ -154,6 +156,7 @@ instance ToJSON OutputTree where
                                       "fname" .= fnameO,
                                       "lnum" .= lnumO,
                                       "is_action" .= is_actionO,
+                                      "is_filter_def" .= is_filter_defO,
                                       "rails_directory" .= rails_directory,
                                       "corners" .= cornersO,
                                       "around_text" .= around_textO,

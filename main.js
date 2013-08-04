@@ -35,6 +35,8 @@ var tree = d3.layout.tree()
              })
              .size([height, width + height/10]);
 
+// === scales =============================================
+
 var x_scale = function(x){
   var threshold = 500;
   var scale = 5;
@@ -53,7 +55,15 @@ var color = d3.scale.category20();
 var rails_directory_hue = d3.scale.ordinal()
                                   .domain([null, "controller", "model", "view", "helper", "lib", "vendor", "config", "js", "stylesheet", "db"])
                                   .rangeBands([0, 360]);
-// var gray_scale = d3.scale.linear().domain([0, 255]).range(["red", "blue"]);
+
+var icon = function(name){
+  switch(name){
+    case "is_filter_def": return "public/images/filter.png";
+    default: return null;
+  }
+}
+
+// === main =============================================
 
 function setupJSON(json){
   if(json.is_action){
@@ -72,6 +82,7 @@ d3.json("input.json", function(json) {
   var links = tree.links(nodes);
 
   var font_size = 9;
+  var icon_size = 13;
 
   base.selectAll("path.link")
      .data(links)
@@ -121,17 +132,25 @@ d3.json("input.json", function(json) {
            var real_box_height = d3.sum(text[0].map(function(e){ return e.getBBox().height; }));
 
            d3.select(this)
-             .insert("rect", "text")
+             .insert("rect", "text.label")
              .attr("width", function(e){  return real_box_width })
              .attr("height", function(e){ return real_box_height })
              .attr("rx", 3)
              .attr("ry", 3)
-             //.style("fill", function(e){ return gray_scale(strToCode(d.search_word || "", 255)) })
              .style("fill", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
              .attr("x", function(e){ return offset_x })
              .attr("y", function(e){ return offset_y })
              .attr("fill-opacity", function(e){ return 0.3 })
              .style("stroke-width", "0");
+
+           d3.select(this)
+             .append("image")
+             .attr("x", "-" + icon_size)
+             .attr("y", "-" + icon_size/2)
+             .attr("width", icon_size)
+             .attr("height", icon_size)
+             .attr("opacity", 0.3)
+             .attr("xlink:href", function(e){ return d.is_filter_def ? icon("is_filter_def") : "" });
       })
       .attr("transform",  function(d){ return "translate(" + x_scale(d.y) + ",  " + (d.x + d.y / 10) + ")"; });
 

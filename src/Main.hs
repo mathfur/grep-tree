@@ -58,6 +58,7 @@ toOutputTree (Tree {..}) = do
                rails_directory = fnameToRailsDirectory fname,
                lnumO = lnum,
                is_actionO = is_action,
+               is_filter_defO = is_filter_def,
                cornersO = corner_str,
                around_textO = around_text,
                childrenO = children'
@@ -78,7 +79,9 @@ wordToTree wdir depth pattern = do
         cnt <- readFileThroughCache abs_path
         let (objective, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
         let text_range = 8
-        around_text <- slice (ln - text_range) (ln + text_range) <$> L.zip [1..] <$> readFileThroughCache path
+        let around_text = slice (ln - text_range) (ln + text_range) $ L.zip [1..] cnt
+        let current_line = cnt !! ln
+        let is_filter_def = isFilterDefinition current_line
         case objective of
             NoObjective -> (return $ Just $ Tree {
                                                primary_word = Nothing,
@@ -86,14 +89,15 @@ wordToTree wdir depth pattern = do
                                                fname = path,
                                                lnum = ln,
                                                is_action = False,
+                                               is_filter_def = False,
                                                corners = all_corners,
                                                around_text = around_text,
                                                children = []
                                              })
             WordObjective next_word -> (do
               is_action <- isAction wdir path next_word
-              ts <- if is_action then return []
-                                 else wordToTree wdir (depth - 1) next_word
+              ts <- if (not is_action && not is_filter_def) then wordToTree wdir (depth - 1) next_word
+                                                            else return []
               return $ Just $ Tree {
                                      primary_word = Just next_word,
                                      search_word = pattern,
@@ -102,6 +106,7 @@ wordToTree wdir depth pattern = do
                                      corners = all_corners,
                                      around_text = around_text,
                                      is_action = is_action,
+                                     is_filter_def = is_filter_def,
                                      children = ts
                                    })
             RegexpObjective next_pattern -> (do
@@ -114,6 +119,7 @@ wordToTree wdir depth pattern = do
                                      corners = all_corners,
                                      around_text = around_text,
                                      is_action = False,
+                                     is_filter_def = False,
                                      children = ts
                                    })))
 

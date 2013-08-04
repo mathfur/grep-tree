@@ -4,7 +4,8 @@
 
 module Parser (
   getKind,
-  parseRakeRouteLine
+  parseRakeRouteLine,
+  isFilterDefinition
 ) where
 
 import Prelude
@@ -76,6 +77,16 @@ http_method ::: Text
 -- e.g. pages GET /pages(.:format) {:action=>"index", :controller=>"pages"}
 route_line :: RailsRoute
   = identifier http_method [^ ]+ "{:action=>\"" identifier "\"," ":controller=>\"" identifier "\"}" { RailsRoute $1 $2 (pack $3) $5 $4 }
+
+-- filter
+
+-- e.g. before_filter, after_filter, around_filter
+filter_line :: ()
+  = "before_filter"
+  / "around_filter"
+  / "after_filter"
+  / "prepend_before_filter"
+  / "prepend_after_filter"
 |]
 
 -- |
@@ -115,3 +126,18 @@ getKind input = fromRight $ parseString line "<stdin>" $ unpack input
 --
 parseRakeRouteLine :: [Line] -> [RailsRoute]
 parseRakeRouteLine input = rights $ map ((parseString route_line "<stdin>") . unpack) input
+
+-- |
+--
+-- >>> isFilterDefinition $ pack "  before_filter :foo"
+-- True
+--
+-- >>> isFilterDefinition $ pack "  prepend_before_filter"
+-- True
+--
+-- >>> isFilterDefinition $ pack "  prepend_before_filtero"
+-- False
+isFilterDefinition :: Line -> Bool
+isFilterDefinition input = case (parseString filter_line "<stdin>" $ unpack input) of
+                      Left _ -> False
+                      Right _ -> True
