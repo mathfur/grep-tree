@@ -77,3 +77,6 @@ slice start_ind end_ind ls = take len $ drop start_ind' $ ls
   where
     start_ind' = start_ind `max` 0
     len = (end_ind - start_ind' + 1) `max` 0
+
+isCommentOnlyLine :: Line -> Bool
+isCommentOnlyLine l = all (\c -> c == ' ' || c == '\t') $ fst $ break (== '#') $ (unpack l)

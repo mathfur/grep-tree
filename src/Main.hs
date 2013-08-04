@@ -265,6 +265,9 @@ getDownCorners = map (\(_, _, orig) -> toCorner orig) . tailOrBlank . getCornerL
 -- >>> getCornerLines $ map pack ["  print 123", "end"]
 -- [(0,2,"  print 123"),(1,0,"end")]
 --
+-- >>> getCornerLines $ map pack ["  print 123", "#foo", "end"]
+-- [(0,2,"  print 123"),(2,0,"end")]
+--
 -- >>> getCornerLines $ map pack ["    print 123", "  end", "end"]
 -- [(0,4,"    print 123"),(1,2,"  end"),(2,0,"end")]
 --
@@ -287,6 +290,6 @@ getCornerLines [] = []
 getCornerLines ls = (0, indentLevel fstline, fstline) : incLNum (getCornerLines rem)
   where
     firstIndentLevel = indentLevel $ head ls
-    (fstls@(fstline:_), rem) = L.break (\l -> (firstIndentLevel > indentLevel l) && (not $ isBlankLine l)) ls
+    (fstls@(fstline:_), rem) = L.break (\l -> (firstIndentLevel > indentLevel l && not (isCommentOnlyLine l)) && (not $ isBlankLine l)) ls
     incLNum :: [(Int, Int, Line)] -> [(Int, Int, Line)]
     incLNum = map (\(i, idt, s) -> (i + L.length fstls, idt, s))
