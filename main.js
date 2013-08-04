@@ -34,8 +34,19 @@ var tree = d3.layout.tree()
              })
              .size([height, width + height/10 - offset_right]);
 
+var x_scale = function(x){
+  var threshold = 500;
+  var scale = 5;
+
+  if(x < threshold){
+    return (x * 1.0)/scale;
+  }else{
+    return x - threshold + threshold/scale;
+  }
+}
+
 var diagonal = d3.svg.diagonal()
-                     .projection(function(d) { return [d.y, d.x + d.y / 10]; });
+                     .projection(function(d) { return [x_scale(d.y), d.x + d.y / 10]; });
 
 var color = d3.scale.category20();
 var rails_directory_hue = d3.scale.ordinal()
@@ -120,9 +131,8 @@ d3.json("input.json", function(json) {
              .attr("y", function(e){ return offset_y })
              .attr("fill-opacity", function(e){ return 0.3 })
              .style("stroke-width", "0");
-
       })
-      .attr("transform",  function(d){ return "translate(" + d.y + ",  " + (d.x + d.y / 10) + ")"; });
+      .attr("transform",  function(d){ return "translate(" + x_scale(d.y) + ",  " + (d.x + d.y / 10) + ")"; });
 
     var tooltip = d3.select("body")
                     .append('div')
