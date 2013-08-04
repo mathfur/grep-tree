@@ -6,21 +6,23 @@
 
 module Main where
 
-import Prelude hiding (length, break, lines, concatMap, readFile, writeFile, rem)
+import Prelude hiding (length, break, lines, concatMap, readFile, writeFile, rem, catch, putStrLn)
 import Data.Text hiding (map, head, reverse, tail, take, last)
 import Data.Text.IO
 import qualified Data.ByteString.Lazy.Char8 as BLC
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Writer
 import Control.Applicative
+import Control.Exception
 import Data.Aeson
 import Data.Maybe
 import qualified Data.List as L
 import qualified Data.Map as M
 import System.Process
-import System.IO hiding (hGetLine, readFile, writeFile)
+import System.IO hiding (hGetLine, readFile, writeFile, putStrLn)
 import Control.Monad.Random hiding (split)
 import System.FilePath
 
@@ -41,6 +43,8 @@ main = do
                                                     "error_files" .= err_files
                                                     ]
     writeFile output $ pack jsn
+    putStrLn "Error at:"
+    forM_ err_files print
 
 toOutputTree :: (RandomGen g) => Tree -> Rand g OutputTree
 toOutputTree (Tree {..}) = do
@@ -127,18 +131,31 @@ grepCommand wdir w = do
    case ls of
      Just ls_ -> return ls_
      Nothing -> do
-       (_,hdl,_,_) <- liftIO $ runInteractiveProcess "git" ["grep", "-n -w", unpack w] (Just wdir) Nothing
+       (_,hdl,_,_) <- liftIO $ runInteractiveProcess "git" ["grep", "-n", "-w", unpack w] (Just wdir) Nothing
        liftIO $ hSetBinaryMode hdl False
        liftIO $ hSetBuffering hdl LineBuffering
-       new_ls <- (liftIO (hGetLineToEOF hdl <* (liftIO $ hClose hdl)))
-       writeCache (GitGrepCache w) wdir new_ls
-       return new_ls
+       new_ls <- liftIO $ catch (liftIO $ hGetLineToEOF hdl <* (liftIO $ hClose hdl)) (exception_handler w)
+       case new_ls of
+         Left msg -> do
+           lift $ tell [unpack msg]
+           return []
+         Right success_word -> do
+           writeCache (GitGrepCache w) wdir success_word
+           return success_word
+     where
+       exception_handler :: Text -> SomeException -> IO (Either Text [Text])
+       exception_handler search_word e = return (Left $ "searching is failed at " `append` search_word `append` ": " `append` (pack $ show e))
 
-hGetLineToEOF :: Handle -> IO [Text]
+hGetLineToEOF :: Handle -> IO (Either Text [Text])
 hGetLineToEOF hdl = do
   is_eof <- (liftIO $ hIsEOF hdl)
-  if is_eof then return []
-            else ((:) <$> (liftIO $ hGetLine hdl) <*> hGetLineToEOF hdl)
+  if is_eof then return $ Right []
+            else do
+              new_line <- liftIO $ hGetLine hdl
+              following <- hGetLineToEOF hdl
+              case following of
+                Right ls -> return $ Right (new_line : ls)
+                Left err -> return $ Left err
 
 -- |
 -- >>> parseGrepResult (pack "foo/bar.hs:123: foo bar")
