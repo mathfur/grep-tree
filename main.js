@@ -98,13 +98,10 @@ d3.json("input.json", function(json) {
       .enter()
       .append("g")
       .each(function(d){
-           var texts = [d.label || (d.corners + " " + ((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : ''))];
            var offset_x = 0; //(-1) * d3.max(texts, function(t){ return font_size * (t || "").length }) / 4;
-           var offset_y = (-1) * (font_size * texts.length) / 2;
+           var offset_y = (-1) * font_size / 2;
 
-           var text = d3.select(this).selectAll("text.label")
-                        .data(texts)
-                        .enter()
+           var text = d3.select(this)
                         .append("text")
                         .attr("class", "label")
                         .attr("x", function(d){ return offset_x; })
@@ -113,7 +110,9 @@ d3.json("input.json", function(json) {
                         .attr("font-family", "trebuchet ms, helvetica, sans-serif")
                         .attr("text-anchor", "start")
                         .attr("font-size", font_size)
-                        .text(function(t){ return t })
+                        .text(function(t){
+                           return d.label || (((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : '') + " --- " + d.corners);
+                        })
                         .on("mouseover", function(){
                             return tooltip.style("visibility", "visible");
                         })
