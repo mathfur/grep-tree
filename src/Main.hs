@@ -91,8 +91,9 @@ wordToTree wdir depth pattern = do
                                                children = []
                                              })
             WordObjective next_word -> (do
-              ts <- wordToTree wdir (depth - 1) next_word
               is_action <- isAction wdir path next_word
+              ts <- if is_action then return []
+                                 else wordToTree wdir (depth - 1) next_word
               return $ Just $ Tree {
                                      primary_word = Just next_word,
                                      search_word = pattern,
@@ -137,11 +138,18 @@ grepCommand wdir w = do
        new_ls <- liftIO $ catch (liftIO $ hGetLineToEOF hdl <* (liftIO $ hClose hdl)) (exception_handler w)
        case new_ls of
          Left msg -> do
-           lift $ tell [unpack msg]
+           lift $ tell [msg]
            return []
-         Right success_word -> do
-           writeCache (GitGrepCache w) wdir success_word
-           return success_word
+         Right new_ls_ -> do
+           let limit = 300
+           when (limit < L.length new_ls_) $ do
+             lift $ tell ["git grep result of " `append` w `append` " is more than "
+                         `append` (pack $ show limit) `append` ": "
+                         `append` (pack $ show $ L.length new_ls_)
+                         ]
+           let new_ls__ = take limit new_ls_
+           writeCache (GitGrepCache w) wdir new_ls__
+           return $ new_ls__
      where
        exception_handler :: Text -> SomeException -> IO (Either Text [Text])
        exception_handler search_word e = return (Left $ "searching is failed at " `append` search_word `append` ": " `append` (pack $ show e))

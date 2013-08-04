@@ -117,7 +117,7 @@ data RailsDirectory = RailsController
                     | RailsTest
                     deriving (Show, Eq)
 
-type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [FilePath] IO) a
+type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [Text] IO) a
 data CacheKey = GitGrepCache Word | FileCache deriving (Show, Eq, Ord)
 
 readFileThroughCache :: FilePath -> TreeGenerator [Text]
@@ -133,7 +133,7 @@ readFileThroughCache path = do
           writeCache FileCache path new_ls
           return new_ls
         Left _ -> do
-          lift $ tell [path]
+          lift $ tell [pack path]
           return []
 
 writeCache :: CacheKey -> FilePath -> [Text] -> TreeGenerator ()
