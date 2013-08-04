@@ -1,3 +1,7 @@
+body {
+  font-family: "Consolas", "Liberation Mono", "Courier", "monospace";
+}
+
 path.link {
   fill: none;
   stroke: #ccc;
@@ -5,15 +9,31 @@ path.link {
 }
 
 div.tooltip {
-  background-color: #ccc;
-  border-radius: 4px;
-  border: 1px solid #222;
+  background-color: #FFFFFF;
+  border-radius: 3px;
+  border: 3px solid #EEEEEE;
+  color: #333333;
 
   padding: 4px;
 
   z-index: 10;
   position: absolute;
   visibility: hidden;
+}
+
+div.tooltip tr td.lnum {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+div.tooltip tr td.content {
+  padding-left: 10px;
+  border-left: 1px solid #aaa;
+  border-left-color: #E5E5E5;
+}
+
+div.tooltip tr.current {
+  background-color: rgb(255, 255, 204);
 }
 
 input#fname-lnum-for-copy {

@@ -81,7 +81,7 @@ d3.json("input.json", function(json) {
   var nodes = tree.nodes(json);
   var links = tree.links(nodes);
 
-  var font_size = 9;
+  var font_size = 10;
   var icon_size = 13;
 
   base.selectAll("path.link")
@@ -118,10 +118,15 @@ d3.json("input.json", function(json) {
                         })
                         .on("mousemove", function(){
                             var inner = ""
-                            _.each(d.around_text || [], function(arr){ inner += "<pre><code>" + arr[0] + ": " + arr[1] + "</code></pre>"});
+                            _.each(d.around_text || [], function(arr){
+                              inner += "<tr class='" + (d.lnum == arr[0] ? 'current' : '') + "'>"
+                                    + "<td class='lnum'>" + arr[0] + "</td>"
+                                    + "<td class='content'><pre>" + arr[1] + "</pre></td>"
+                                    + "</tr>"
+                            });
                             return tooltip.style("top", (d3.event.pageY + 10) + "px")
-                                          .style("left",(d3.event.pageX - 100) + "px")
-                                          .html(inner);
+                                          .style("left", (d3.event.pageX - 100) + "px")
+                                          .html("<table>" + inner + "</table>");
                         })
                         .on("mouseout", function(){
                             return tooltip.style("visibility", "hidden");
