@@ -1,9 +1,8 @@
 grep-tree
 =========
-STATUS: Experimental
+This tool grep a word recursively at rails project, and output graphical tree.
 
-Implemented features:
- * NONE
+STATUS: Experimental
 
 Install
 -------
@@ -21,8 +20,8 @@ Usage
  1. $ cd (TARGET DIR)
  1. $ rake routes > rake_routes
  2. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=input.json --wdiropt=(TARGET DIR)
- 3. copy input.json to grep-tree directory.
- 4. Open index.html by browser.
+ 3. copy input.json to public directory under grep-tree project.
+ 4. Open public/index.html by browser.
 
 Memo
 ----
