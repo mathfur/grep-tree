@@ -150,6 +150,7 @@ d3.json("input.json", function(json) {
              .attr("fill-opacity", function(e){ return 0.3 })
              .style("stroke-width", "0");
 
+           // -- icon -------------------------
            d3.select(this)
              .append("image")
              .attr("x", "-" + icon_size)

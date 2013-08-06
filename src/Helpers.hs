@@ -4,12 +4,11 @@
 
 module Helpers where
 
-import Prelude hiding (length, concatMap, span)
-import Types
-import Parser
-import Data.Text (Text, singleton, length, concatMap, span, unpack)
-import Data.List (isPrefixOf)
-import System.FilePath (takeBaseName)
+import BasicPrelude hiding (Word)
+import qualified Data.Aeson as DA
+import qualified Data.ByteString.Lazy.Char8 as BLC
+import qualified Data.Text as T
+import Filesystem.Path.CurrentOS hiding (encode)
 
 initOrBlank :: [a] -> [a]
 initOrBlank [] = []
@@ -19,48 +18,33 @@ tailOrBlank :: [a] -> [a]
 tailOrBlank [] = []
 tailOrBlank xs = tail xs
 
--- | 行の先頭空白数を得る
-indentLevel :: Line -> Int
-indentLevel = length . concatMap expandTab . fst . span isBlank
-  where
-    expandTab :: Char -> Text
-    expandTab '\t' = "    "
-    expandTab c = singleton c
-
-isBlankLine :: Line -> Bool
-isBlankLine = all isBlank . unpack
-
 isBlank :: Char -> Bool
 isBlank c = (or [c == ' ', c == '\t'])
 
-toCorner :: Text -> Corner
-toCorner orig = Corner (getKind orig) orig
+-- | 行の先頭空白数を得る
+indentLevel :: Text -> Int
+indentLevel = T.length . T.concatMap expandTab . fst . T.span isBlank
+  where
+    expandTab :: Char -> Text
+    expandTab '\t' = "    "
+    expandTab c = T.singleton c
 
-dropFirstUnderScore :: String -> String
-dropFirstUnderScore ('_':cs) = cs
-dropFirstUnderScore cs = cs
+isBlankLine :: Text -> Bool
+isBlankLine = all isBlank . T.unpack
 
-fnameToRailsDirectory :: FilePath -> Maybe RailsDirectory
-fnameToRailsDirectory fn
-  | "app/controllers/" `isPrefixOf` fn    = Just RailsController
-  | "app/models/" `isPrefixOf` fn         = Just RailsModel
-  | "app/views/" `isPrefixOf` fn          = Just RailsView
-  | "app/helper/" `isPrefixOf` fn         = Just RailsHelper
-  | "lib/" `isPrefixOf` fn                = Just RailsLib
-  | "vendor/" `isPrefixOf` fn             = Just RailsVendor
-  | "config/" `isPrefixOf` fn             = Just RailsConfig
-  | "public/javascripts/" `isPrefixOf` fn = Just RailsJs
-  | "publis/stylesheets/" `isPrefixOf` fn = Just RailsStyleSheet
-  | "db/" `isPrefixOf` fn                 = Just RailsDb
-  | "test/" `isPrefixOf` fn || "spec/" `isPrefixOf` fn = Just RailsTest
-  | otherwise                             = Nothing
+dropFirstUnderScore :: Text -> Text
+dropFirstUnderScore = T.pack . f . T.unpack
+  where
+    f ('_':cs) = cs
+    f cs = cs
 
--- |
---
--- >>> takeBaseName' "/foo/bar.baz.txt"
--- "bar"
-takeBaseName' :: FilePath -> String
-takeBaseName' path = fst $ break (== '.') $ takeBaseName path
+toText' :: FilePath -> Text
+toText' fn = case (toText fn) of
+               Left _ -> error $ "toText is failed"
+               Right fn' -> fn'
+
+isCommentOnlyLine :: Text -> Bool
+isCommentOnlyLine l = all (\c -> c == ' ' || c == '\t') $ fst $ break (== '#') $ (T.unpack l)
 
 -- |
 --
@@ -78,5 +62,5 @@ slice start_ind end_ind ls = take len $ drop start_ind' $ ls
     start_ind' = start_ind `max` 0
     len = (end_ind - start_ind' + 1) `max` 0
 
-isCommentOnlyLine :: Line -> Bool
-isCommentOnlyLine l = all (\c -> c == ' ' || c == '\t') $ fst $ break (== '#') $ (unpack l)
+jsonToText :: (DA.ToJSON a) => a -> Text
+jsonToText = T.pack . BLC.unpack . DA.encode . DA.toJSON

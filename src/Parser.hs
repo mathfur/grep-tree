@@ -5,7 +5,8 @@
 module Parser (
   getKind,
   parseRakeRouteLine,
-  isFilterDefinition
+  isFilterDefinition,
+  toCorner
 ) where
 
 import Prelude
@@ -141,3 +142,6 @@ isFilterDefinition :: Line -> Bool
 isFilterDefinition input = case (parseString filter_line "<stdin>" $ unpack input) of
                       Left _ -> False
                       Right _ -> True
+
+toCorner :: Text -> Corner
+toCorner orig = Corner (getKind orig) orig

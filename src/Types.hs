@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -6,31 +7,27 @@
 
 module Types where
 
-import Prelude hiding (lookup, map, lines)
+import BasicPrelude hiding (Word)
 import Data.Aeson
-import Data.Text hiding (map, head, concatMap)
-import Data.Text.Encoding (decodeUtf8')
-import qualified Data.ByteString.Char8 as BC
+import Data.Text hiding (map, head, concatMap, intercalate, isPrefixOf)
 import qualified Data.List as L
-import qualified Data.Map as M
-import System.Console.CmdArgs hiding (name)
-import Control.Applicative
 import Control.Lens (makeLenses)
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.State
-import Control.Monad.Trans.Writer
-import Control.Monad.IO.Class
+import Filesystem.Path.CurrentOS
 
 type Lines = [Text]
 type Line = Text
 type Word = Text
 type Pattern = Text
+type ErrMsg = Text
 type Dir = FilePath
 type NamedRoute = Text
 type ControllerName = Text
 type ActionName = Text
 
-data Objective = RegexpObjective Pattern | WordObjective Word | NoObjective deriving (Show, Eq)
+data Objective = RegexpObjective Pattern
+               | WordObjective Word
+               | NoObjective
+               deriving (Show, Eq)
 
 data Kind = RbClass Word
           | RbModule Word
@@ -66,7 +63,7 @@ data OutputTree = OutputTree {
                   name :: Text,
                   primary_wordO :: Maybe Text,
                   search_wordO :: Text,
-                  fnameO :: FilePath,
+                  fnameO :: Text,
                   lnumO :: Int,
                   cornersO :: Text,
                   is_actionO :: Bool,
@@ -76,12 +73,13 @@ data OutputTree = OutputTree {
                   childrenO :: [OutputTree]
                   } deriving (Show, Eq)
 
-data Option  = Option {
-               wordOpt :: String,
-               depthOpt :: Int,
-               outputOpt :: String,
-               wdirOpt :: String
-             } deriving (Data, Show, Typeable)
+data AllTree = AllTree {
+                 nameA :: Text,
+                 primary_wordA :: Maybe Text,
+                 cornersA :: Text,
+                 childrenA :: [OutputTree],
+                 err_filesA :: [Text]
+               }
 
 data RailsRoute = RailsRoute {
                     namedRoute :: NamedRoute,
@@ -90,23 +88,6 @@ data RailsRoute = RailsRoute {
                     controllerName :: ControllerName, -- e.g. users_controller
                     actionName :: ActionName
                   } deriving (Show, Eq)
-
-option :: Option
-option = Option {
-    wordOpt   = def &= typ "STRING",
-    depthOpt  = def &= typ "INTEGER",
-    outputOpt = def &= typ "FILE",
-    wdirOpt   = def &= typ "DIR"
-} &= program "grep-tree"
-
-getOpt :: IO (String, Int, FilePath, FilePath)
-getOpt = do
-    opts <- cmdArgs option
-    let w = wordOpt opts
-    let depth = depthOpt opts
-    let output = outputOpt opts
-    let wdir = wdirOpt opts
-    return (w, depth, output, wdir)
 
 data RailsDirectory = RailsController
                     | RailsModel
@@ -122,34 +103,17 @@ data RailsDirectory = RailsController
                     | RailsTest
                     deriving (Show, Eq)
 
-type TreeGenerator a = StateT (M.Map (CacheKey, FilePath) [Text]) (WriterT [Text] IO) a
-data CacheKey = GitGrepCache Word | FileCache deriving (Show, Eq, Ord)
+------------------------------------------------------------------
+-- | ToJSON instance
 
-readFileThroughCache :: FilePath -> TreeGenerator [Text]
-readFileThroughCache path = do
-  ls <- readCache FileCache path
-  case ls of
-    Just inner -> return inner
-    Nothing -> do
-      cnt_or_error <- decodeUtf8' <$> (liftIO $ BC.readFile path)
-      case cnt_or_error of
-        Right cnt -> do
-          let new_ls = lines cnt
-          writeCache FileCache path new_ls
-          return new_ls
-        Left _ -> do
-          lift $ tell [pack path]
-          return []
-
-writeCache :: CacheKey -> FilePath -> [Text] -> TreeGenerator ()
-writeCache key path ls = do
-    pairs <- get
-    put $ M.insert (key, path) ls pairs
-
-readCache :: CacheKey -> FilePath -> TreeGenerator (Maybe [Text])
-readCache key path = do
-    pairs <- get
-    return $ M.lookup (key, path) pairs
+instance ToJSON AllTree where
+    toJSON (AllTree {..}) = object [
+                              "name" .= nameA,
+                              "primary_word" .= primary_wordA,
+                              "corners" .= cornersA,
+                              "children" .= childrenA,
+                              "error_files" .= err_filesA
+                            ]
 
 instance ToJSON OutputTree where
     toJSON (OutputTree {..}) = object [
@@ -172,6 +136,9 @@ instance ToJSON Corner where
                                 "original_text" .= orig
                                 ]
 
+instance ToJSON FilePath where
+    toJSON = toJSON . toText
+
 instance ToJSON RailsDirectory where
     toJSON RailsController  = "controller"
     toJSON RailsModel       = "model"
@@ -185,6 +152,9 @@ instance ToJSON RailsDirectory where
     toJSON RailsStyleSheet  = "stylesheet"
     toJSON RailsDb          = "db"
     toJSON RailsTest        = "test"
+
+------------------------------------------------------------------
+-- | helpers
 
 showCorner :: Corner -> Text
 showCorner (Corner (RbClass w) _) = ':' `cons` w
@@ -204,3 +174,37 @@ showCorner (Corner CurrentLine _) = "@"
 
 showCorners :: [Corner] -> Text
 showCorners = intercalate "" . L.map showCorner
+
+haveWord :: Corner -> Bool
+haveWord = isJust . getWord
+
+getWord :: Corner -> Maybe Word
+getWord (Corner (RbClass w) _) = Just w
+getWord (Corner (RbModule w) _) = Just w
+getWord (Corner (RbClassMethod w) _) = w
+getWord (Corner (RbMethod w) _) = w
+getWord (Corner RbBlock _) = Nothing
+getWord (Corner RbIf _) = Nothing
+getWord (Corner RbEnd _) = Nothing
+getWord (Corner (JsFunc w) _) = w
+getWord (Corner JsEnd _) = Nothing
+getWord (Corner CurrentLine _) = Nothing
+getWord (Corner Other _) = Nothing
+
+fnameToRailsDirectory :: FilePath -> Maybe RailsDirectory
+fnameToRailsDirectory path
+  | "app/controllers/" `isPrefixOf` fn    = Just RailsController
+  | "app/models/" `isPrefixOf` fn         = Just RailsModel
+  | "app/views/" `isPrefixOf` fn          = Just RailsView
+  | "app/helper/" `isPrefixOf` fn         = Just RailsHelper
+  | "lib/" `isPrefixOf` fn                = Just RailsLib
+  | "vendor/" `isPrefixOf` fn             = Just RailsVendor
+  | "config/" `isPrefixOf` fn             = Just RailsConfig
+  | "public/javascripts/" `isPrefixOf` fn = Just RailsJs
+  | "publis/stylesheets/" `isPrefixOf` fn = Just RailsStyleSheet
+  | "db/" `isPrefixOf` fn                 = Just RailsDb
+  | "test/" `isPrefixOf` fn || "spec/" `isPrefixOf` fn = Just RailsTest
+  | otherwise                             = Nothing
+    where
+      fn = encodeString path
+
