@@ -15,6 +15,7 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import System.Console.CmdArgs hiding (name)
 import Control.Applicative
+import Control.Lens (makeLenses)
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Writer
@@ -31,17 +32,35 @@ type ActionName = Text
 
 data Objective = RegexpObjective Pattern | WordObjective Word | NoObjective deriving (Show, Eq)
 
+data Kind = RbClass Word
+          | RbModule Word
+          | RbClassMethod (Maybe Word)
+          | RbMethod (Maybe Word)
+          | RbBlock
+          | RbIf
+          | RbEnd
+          | JsFunc (Maybe Word)
+          | JsEnd
+          | Other
+          | CurrentLine
+          deriving (Show, Eq)
+
+-- | 種類*キーワード*原文*Grep結果
+data Corner = Corner Kind Text deriving (Show, Eq)
+
 data Tree = Tree {
-          primary_word :: Maybe Text,
-          search_word :: Text,
-          fname :: FilePath,
-          lnum :: Int,
-          corners :: [Corner],
-          is_action :: Bool,
-          is_filter_def :: Bool,
-          around_text :: [(Int, Text)],
-          children :: [Tree]
+          _primary_word :: Maybe Text,
+          _search_word :: Text,
+          _fname :: FilePath,
+          _lnum :: Int,
+          _corners :: [Corner],
+          _is_action :: Bool,
+          _is_filter_def :: Bool,
+          _around_text :: [(Int, Text)],
+          _children :: [Tree]
           } deriving (Show, Eq)
+
+makeLenses ''Tree
 
 data OutputTree = OutputTree {
                   name :: Text,
@@ -88,22 +107,6 @@ getOpt = do
     let output = outputOpt opts
     let wdir = wdirOpt opts
     return (w, depth, output, wdir)
-
--- | 種類*キーワード*原文*Grep結果
-data Corner = Corner Kind Text deriving (Show, Eq)
-
-data Kind = RbClass Word
-          | RbModule Word
-          | RbClassMethod (Maybe Word)
-          | RbMethod (Maybe Word)
-          | RbBlock
-          | RbIf
-          | RbEnd
-          | JsFunc (Maybe Word)
-          | JsEnd
-          | Other
-          | CurrentLine
-          deriving (Show, Eq)
 
 data RailsDirectory = RailsController
                     | RailsModel

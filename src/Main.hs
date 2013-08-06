@@ -9,39 +9,33 @@ module Main where
 import Prelude hiding (length, break, lines, concatMap, readFile, writeFile, rem, catch, putStrLn)
 import Data.Text hiding (map, head, reverse, tail, take, last)
 import Data.Text.IO
-import qualified Data.ByteString.Lazy.Char8 as BLC
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
 import Control.Monad.Trans.Writer
+import Control.Monad.Random hiding (split)
 import Control.Applicative
 import Control.Exception
-import Data.Aeson
+import Control.Lens hiding (children)
 import Data.Maybe
 import qualified Data.List as L
 import qualified Data.Map as M
 import System.Process
 import System.IO hiding (hGetLine, readFile, writeFile, putStrLn)
-import Control.Monad.Random hiding (split)
 import System.FilePath
 
 import Types
 import Helpers
 import Parser
+import Tree
 
 main :: IO ()
 main = do
     (w, depth, output, wdir) <- getOpt
     ((tree, _), err_files) <- runWriterT $ runStateT (wordToTree wdir depth (pack w)) (M.fromList [])
     output_trees <- evalRandIO $ mapM toOutputTree tree
-    let jsn = BLC.unpack $ encode $ toJSON $ object [
-                                                    "name" .= ("main" :: Text),
-                                                    "primary_word" .= pack w,
-                                                    "corners" .= pack w,
-                                                    "children" .= output_trees,
-                                                    "error_files" .= err_files
-                                                    ]
+    let jsn = generateJSON (pack w) output_trees err_files
     writeFile output $ pack jsn
     putStrLn "Error at:"
     forM_ err_files print
@@ -49,25 +43,25 @@ main = do
 toOutputTree :: (RandomGen g) => Tree -> Rand g OutputTree
 toOutputTree (Tree {..}) = do
     random_name <- randomName
-    children' <- mapM toOutputTree children
+    children' <- mapM toOutputTree _children
     return $ OutputTree {
                name = random_name,
-               primary_wordO = primary_word,
-               search_wordO = search_word,
-               fnameO = fname,
-               rails_directory = fnameToRailsDirectory fname,
-               lnumO = lnum,
-               is_actionO = is_action,
-               is_filter_defO = is_filter_def,
+               primary_wordO = _primary_word,
+               search_wordO = _search_word,
+               fnameO = _fname,
+               rails_directory = fnameToRailsDirectory _fname,
+               lnumO = _lnum,
+               is_actionO = _is_action,
+               is_filter_defO = _is_filter_def,
                cornersO = corner_str,
-               around_textO = around_text,
+               around_textO = _around_text,
                childrenO = children'
              }
       where
         randomName :: (RandomGen g) => Rand g Text
         randomName = pack <$> (replicateM 20 $ getRandomR ('a', 'z'))
 
-        corner_str = showCorners corners
+        corner_str = showCorners _corners
 
 wordToTree :: FilePath -> Int -> Pattern -> TreeGenerator [Tree]
 wordToTree _ 0 _ = return []
@@ -79,49 +73,34 @@ wordToTree wdir depth pattern = do
         cnt <- readFileThroughCache abs_path
         let (objective, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
         let text_range = 8
-        let around_text = slice (ln - text_range) (ln + text_range) $ L.zip [1..] cnt
+        let source = slice (ln - text_range) (ln + text_range) $ L.zip [1..] cnt
         let current_line = cnt !! ln
-        let is_filter_def = isFilterDefinition current_line
+        let is_filter_def_ = isFilterDefinition current_line
+        let common_tree = defaultTree pattern path ln all_corners source
         case objective of
-            NoObjective -> (return $ Just $ Tree {
-                                               primary_word = Nothing,
-                                               search_word = pattern,
-                                               fname = path,
-                                               lnum = ln,
-                                               is_action = False,
-                                               is_filter_def = False,
-                                               corners = all_corners,
-                                               around_text = around_text,
-                                               children = []
-                                             })
+            NoObjective -> return $ Just common_tree
             WordObjective next_word -> (do
-              is_action <- isAction wdir path next_word
-              ts <- if (not is_action && not is_filter_def) then wordToTree wdir (depth - 1) next_word
+              is_action_ <- isAction wdir path next_word
+              ts <- if (not is_action_ && not is_filter_def_) then wordToTree wdir (depth - 1) next_word
                                                             else return []
-              return $ Just $ Tree {
-                                     primary_word = Just next_word,
-                                     search_word = pattern,
-                                     fname = path,
-                                     lnum = ln,
-                                     corners = all_corners,
-                                     around_text = around_text,
-                                     is_action = is_action,
-                                     is_filter_def = is_filter_def,
-                                     children = ts
-                                   })
+              return $ Just ( common_tree&primary_word.~(Just next_word)&is_action.~is_action_&is_filter_def.~is_filter_def_&children.~ts) )
             RegexpObjective next_pattern -> (do
               ts <- wordToTree wdir (depth - 1) next_pattern
-              return $ Just $ Tree {
-                                     primary_word = Just next_pattern,
-                                     search_word = pattern,
-                                     fname = path,
-                                     lnum = ln,
-                                     corners = all_corners,
-                                     around_text = around_text,
-                                     is_action = False,
-                                     is_filter_def = False,
-                                     children = ts
-                                   })))
+              return $ Just ( common_tree&primary_word.~(Just next_pattern)&children.~ts ))))
+
+defaultTree :: Word -> FilePath -> Int -> [Corner] -> [(Int, Text)] -> Tree
+defaultTree pattern path ln all_corners source
+  = Tree {
+      _primary_word = Nothing,
+      _search_word = pattern,
+      _fname = path,
+      _lnum = ln,
+      _corners = all_corners,
+      _around_text = source,
+      _is_action = False,
+      _is_filter_def = False,
+      _children = []
+    }
 
 isAction :: FilePath -> FilePath -> Word -> TreeGenerator Bool
 isAction wdir path w = do
@@ -158,7 +137,7 @@ grepCommand wdir w = do
            return $ new_ls__
      where
        exception_handler :: Text -> SomeException -> IO (Either Text [Text])
-       exception_handler search_word e = return (Left $ "searching is failed at " `append` search_word `append` ": " `append` (pack $ show e))
+       exception_handler word e = return (Left $ "searching is failed at " `append` word `append` ": " `append` (pack $ show e))
 
 hGetLineToEOF :: Handle -> IO (Either Text [Text])
 hGetLineToEOF hdl = do
