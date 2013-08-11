@@ -4,15 +4,10 @@ var margin = {top: 10, right: 200, bottom: 10, left: 40},
     offset_right = 800;
     offset_buttom = 300;
 
-var svg = d3.select("body")
-            .append("div")
-            .attr('class', 'base')
+var base = d3.select("div#base")
             .append("svg")
             .attr("width", width + margin.left + margin.right + offset_right)
             .attr("height", height + margin.top + margin.bottom + width/10 + offset_buttom);
-
-var base = svg.append("g")
-              .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");
 
 var tree = d3.layout.tree()
              .separation(function(a, b) { return (a.fname == b.fname) ? 1 : 0.8 })
@@ -103,17 +98,14 @@ d3.json("input.json", function(json) {
       .enter()
       .append("g")
       .each(function(d){
-           // 暫定対応
-           var offset_x = 20;
-           var offset_y = 0;
-
-           var text = d3.select("body")
-                        .append("span")
+           var node_height = font_size + 8;
+           var text = d3.select("div#base")
+                        .append("div")
                         .attr("class", "label")
                         .attr("data-name", d.name)
-                        .style("top", function(e){  return margin.top  + (d.x + d.y/10) + offset_x + "px"; })
-                        .style("left", function(e){ return margin.left + x_scale(d.y)   + offset_y + "px"; })
-                        .style("height", font_size)
+                        .style("top", function(e){  return (d.x + d.y/10) - node_height/2 + "px"; })
+                        .style("left", function(e){ return x_scale(d.y)                   + "px"; })
+                        .style("height", node_height + "px")
                         .style("font-size", font_size)
                         .style("background-color", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
                         .html(function(t){
@@ -155,16 +147,16 @@ d3.json("input.json", function(json) {
              .append("image")
              .attr("class", "icon")
              .attr("data-name", d.name)
-             .attr("x", function(e, i){ return "-" + icon_size*(i+1); })
-             .attr("y", "-" + icon_size/2)
-             .attr("width", icon_size)
-             .attr("height", icon_size)
+             .attr("x", function(e, i){ return "-" + icon_size*(i+1) + "px"; })
+             .attr("y", "-" + icon_size/2 + "px")
+             .attr("width", icon_size + "px")
+             .attr("height", icon_size + "px")
              .attr("opacity", 0.7)
              .attr("xlink:href", function(e){ return e });
       })
-      .attr("transform",  function(d){ return "translate(" + x_scale(d.y) + ",  " + (d.x + d.y / 10) + ")"; });
+      .attr("transform", function(d){ return "translate(" + x_scale(d.y) + "px,  " + (d.x + d.y / 10) + "px)"; });
 
-    var tooltip = d3.select("body")
+    var tooltip = d3.select("div#base")
                     .append('div')
                     .attr('class', 'tooltip');
 
@@ -177,6 +169,5 @@ d3.json("input.json", function(json) {
         d3.selectAll('path.link[data-source="' + n + '"]').remove();
         d3.selectAll('path.link[data-target="' + n + '"]').remove();
       });
-
     });
 });

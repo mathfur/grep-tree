@@ -1,5 +1,10 @@
 body {
   font-family: "Consolas", "Liberation Mono", "Courier", "monospace";
+  padding-top: 40px;
+}
+
+div#base {
+  position: relative;
 }
 
 path.link {
@@ -8,11 +13,7 @@ path.link {
   stroke-width: 1.5px;
 }
 
-div.base {
-  position: relative;
-}
-
-span.label {
+div.label {
   background-color: #FFFFFF;
   border-radius: 3px;
   color: #000;
@@ -67,9 +68,16 @@ div.delete {
   border-shadow: #F1F1E9 0px 1px 0px 0px;
   margin-top: 2px;
   margin-right: 4px;
+  margin-left: 2px;
 }
 
 .genericon {
   text-align: center;
   font-size: 15px;
+}
+
+svg {
+  position: absolute;
+  top: 0px;
+  left: 0px;
 }
