@@ -5,6 +5,7 @@ var margin = {top: 10, right: 200, bottom: 10, left: 40},
     offset_buttom = 300;
 
 var svg = d3.select("body")
+            .append("div.base")
             .append("svg")
             .attr("width", width + margin.left + margin.right + offset_right)
             .attr("height", height + margin.top + margin.bottom + width/10 + offset_buttom);
@@ -98,18 +99,18 @@ d3.json("input.json", function(json) {
       .enter()
       .append("g")
       .each(function(d){
-           var offset_x = 0; //(-1) * d3.max(texts, function(t){ return font_size * (t || "").length }) / 4;
-           var offset_y = (-1) * font_size / 2;
+           // 暫定対応
+           var offset_x = 20;
+           var offset_y = 0;
 
-           var text = d3.select(this)
-                        .append("text")
+           var text = d3.select("body")
+                        .append("span")
                         .attr("class", "label")
-                        .attr("x", function(d){ return offset_x; })
-                        .attr("y", function(d, i){ return offset_y + font_size*(i+1); })
-                        .attr("fill", "#000")
-                        .attr("font-family", "trebuchet ms, helvetica, sans-serif")
-                        .attr("text-anchor", "start")
-                        .attr("font-size", font_size)
+                        .style("top", function(e){  return margin.top  + (d.x + d.y/10) + offset_x + "px"; })
+                        .style("left", function(e){ return margin.left + x_scale(d.y)   + offset_y + "px"; })
+                        .style("height", font_size)
+                        .style("font-size", font_size)
+                        .style("background-color", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
                         .text(function(t){
                            return d.label || (((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : '') + " --- " + d.corners);
                         })
@@ -121,7 +122,7 @@ d3.json("input.json", function(json) {
                             _.each(d.around_text || [], function(arr){
                               inner += "<tr class='" + (d.lnum == arr[0] ? 'current' : '') + "'>"
                                     + "<td class='lnum'>" + arr[0] + "</td>"
-                                    + "<td class='content'><pre>" + arr[1] + "</pre></td>"
+                                    + "<td class='content'><pre>" + $('<span/>').text(arr[1]).html() + "</pre></td>"
                                     + "</tr>"
                             });
                             return tooltip.style("top", (d3.event.pageY + 10) + "px")
@@ -134,21 +135,6 @@ d3.json("input.json", function(json) {
                         .on("click", function(text){
                            $('#fname-lnum-for-copy').val(d.fname + ":" + d.lnum);
                         });
-
-           var real_box_width  = d3.max(text[0].map(function(e){ return e.getBBox().width; }));
-           var real_box_height = d3.sum(text[0].map(function(e){ return e.getBBox().height; }));
-
-           d3.select(this)
-             .insert("rect", "text.label")
-             .attr("width", function(e){  return real_box_width })
-             .attr("height", function(e){ return real_box_height })
-             .attr("rx", 3)
-             .attr("ry", 3)
-             .style("fill", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
-             .attr("x", function(e){ return offset_x })
-             .attr("y", function(e){ return offset_y })
-             .attr("fill-opacity", function(e){ return 0.3 })
-             .style("stroke-width", "0");
 
            // -- icon -------------------------
            d3.select(this)

@@ -8,6 +8,24 @@ path.link {
   stroke-width: 1.5px;
 }
 
+div.base {
+  position: relative;
+}
+
+span.label {
+  background-color: #FFFFFF;
+  border-radius: 3px;
+  color: #000;
+
+  z-index: 5;
+  position: absolute;
+  visibility: visible;
+
+  font-family: trebuchet ms, helvetica, sans-serif;
+  opacity: 0.6;
+  border-width: 0;
+}
+
 div.tooltip {
   background-color: #FFFFFF;
   border-radius: 3px;
