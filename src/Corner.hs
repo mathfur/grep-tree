@@ -21,46 +21,47 @@ import Parser
 -- 戻り値: (Intで指定した関数の最初の行と思われるCorner, 全Corner)
 --
 -- >>> getCorners [] 0
--- (Nothing,[])
+-- (Nothing,Nothing,[])
 --
 -- >>> getCorners [pack "def foo", pack "  print 123", pack "end"] 1
--- (Just (Corner (RbMethod (Just "foo")) "def foo"),[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "def foo"),Just 0,[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def bar", "  def foo", "    print 123", "  end", "end"]) 2
--- (Just (Corner (RbMethod (Just "foo")) "  def foo"),[Corner (RbMethod (Just "bar")) "def bar",Corner (RbMethod (Just "foo")) "  def foo",Corner CurrentLine "    print 123",Corner RbEnd "  end",Corner RbEnd "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "  def foo"),Just 1,[Corner (RbMethod (Just "bar")) "def bar",Corner (RbMethod (Just "foo")) "  def foo",Corner CurrentLine "    print 123",Corner RbEnd "  end",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 1
--- (Just (Corner (RbMethod (Just "foo")) "def foo(s)"),[Corner (RbMethod (Just "foo")) "def foo(s)",Corner CurrentLine "  print s",Corner RbEnd "end"])
+-- (Just (Corner (RbMethod (Just "foo")) "def foo(s)"),Just 0,[Corner (RbMethod (Just "foo")) "def foo(s)",Corner CurrentLine "  print s",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 4
--- (Nothing,[Corner CurrentLine "def bar(src)"])
+-- (Nothing,Nothing,[Corner CurrentLine "def bar(src)"])
 --
 -- >>> getCorners (map pack ["def foo(s)", "  print s", "end", "", "def bar(src)", "  foo(src)", "end", "", "puts bar()"]) 5
--- (Just (Corner (RbMethod (Just "bar")) "def bar(src)"),[Corner (RbMethod (Just "bar")) "def bar(src)",Corner CurrentLine "  foo(src)",Corner RbEnd "end"])
+-- (Just (Corner (RbMethod (Just "bar")) "def bar(src)"),Just 4,[Corner (RbMethod (Just "bar")) "def bar(src)",Corner CurrentLine "  foo(src)",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 6
--- (Just (Corner (RbMethod (Just "bar")) "  def bar(src)"),[Corner (RbModule "Foo") "module Foo",Corner (RbMethod (Just "bar")) "  def bar(src)",Corner CurrentLine "    foo(src)",Corner RbEnd "  end",Corner RbEnd "end"])
+-- (Just (Corner (RbMethod (Just "bar")) "  def bar(src)"),Just 5,[Corner (RbModule "Foo") "module Foo",Corner (RbMethod (Just "bar")) "  def bar(src)",Corner CurrentLine "    foo(src)",Corner RbEnd "  end",Corner RbEnd "end"])
 --
 -- >>> getCorners (map pack ["module Foo", "  def foo(s)", "    print s", "  end", "", "  def bar(src)", "    foo(src)", "  end", "end", "", "puts bar('13:45')"]) 10
--- (Nothing,[Corner CurrentLine "puts bar('13:45')"])
-getCorners :: [Line] -> Int -> (Maybe Corner, [Corner])
-getCorners [] _ = (Nothing, [])
-getCorners ls num = (primary_corner, all_corners)
+-- (Nothing,Nothing,[Corner CurrentLine "puts bar('13:45')"])
+getCorners :: [Line] -> Int -> (Maybe Corner, Maybe Int, [Corner])
+getCorners [] _ = (Nothing, Nothing, [])
+getCorners ls num = (primary_corner, ((-) num) <$> primary_lnum, all_corners)
     where
       up_corners = (getUpCorners (take (num + 1) ls))
       down_corners = (getDownCorners ((drop num) ls))
       current_corner = Corner CurrentLine (ls !! num)
-      all_corners = up_corners ++ [current_corner] ++ down_corners
+      all_corners = (map snd up_corners) ++ [current_corner] ++ (map snd down_corners)
 
-      primary_corner = if (length up_corners == 0) then Nothing else (find haveWord $ reverse up_corners)
+      primary_corner = if (length up_corners == 0) then Nothing else (snd <$> (find (haveWord . snd) $ reverse up_corners))
+      primary_lnum = if (length up_corners == 0)   then Nothing else (fst <$> (find (haveWord . snd) $ reverse up_corners))
 
 -- | ある行の上にある角を取得
-getUpCorners :: [Line] -> [Corner]
+getUpCorners :: [Line] -> [(Int, Corner)]
 getUpCorners = reverse . getDownCorners . reverse
 
 -- | ある行の下にある角を取得
-getDownCorners :: [Line] -> [Corner]
-getDownCorners = map (\(_, _, orig) -> toCorner orig) . tailOrBlank . getCornerLines
+getDownCorners :: [Line] -> [(Int, Corner)]
+getDownCorners = map (\(ln, _, orig) -> (ln, toCorner orig)) . tailOrBlank . getCornerLines
 
 -- | 角行のみ得る(行番号, インデントレベル, 原文).
 --
