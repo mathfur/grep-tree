@@ -34,7 +34,7 @@ div.label {
   border-width: 0;
 }
 
-div.tooltip {
+div.around-text-tip {
   background-color: #FFFFFF;
   border-radius: 3px;
   border: 3px solid #EEEEEE;
@@ -44,21 +44,31 @@ div.tooltip {
 
   z-index: 10;
   position: absolute;
-  visibility: hidden;
+  visibility: visible;
 }
 
-div.tooltip tr td.lnum {
+div.around-text-tip * {
+  padding: 0px;
+  margin: 0px;
+  border: none;
+  background-color: transparent;
+}
+
+div.around-text-tip tr td.lnum {
   padding-left: 8px;
   padding-right: 8px;
 }
 
-div.tooltip tr td.content {
+div.around-text-tip tr td.content {
   padding-left: 10px;
   border-left: 1px solid #aaa;
+  border-top: 0px;
+  border-bottom: 0px;
+  border-right: 0px;
   border-left-color: #E5E5E5;
 }
 
-div.tooltip tr.current {
+div.around-text-tip tr.current {
   background-color: rgb(255, 255, 204);
 }
 
@@ -87,4 +97,21 @@ svg {
   position: absolute;
   top: 0px;
   left: 0px;
+}
+
+div#source-area {
+  position: relative;
+}
+
+div#source-area div {
+  position: absolute;
+  z-index: 15;
+  top: 5px;
+  left: -10px;
+  padding: 5px;
+}
+
+div#source-area div textarea {
+  width: 800px;
+  height: 200px;
 }

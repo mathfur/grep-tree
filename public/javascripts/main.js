@@ -134,6 +134,11 @@ d3.json("input.json", function(json) {
                         })
                         .on("click", function(text){
                            $('#fname-lnum-for-copy').val(d.fname + ":" + d.lnum).select();
+
+                           var cnt = _.map(d.around_text, function(arr){
+                             return arr[1]
+                           }).join("\n");
+                           $('#source-area-text').val(cnt);
                         });
 
            // -- icon -------------------------
@@ -154,11 +159,11 @@ d3.json("input.json", function(json) {
              .attr("opacity", 0.7)
              .attr("xlink:href", function(e){ return e });
       })
-      .attr("transform", function(d){ return "translate(" + x_scale(d.y) + "px,  " + (d.x + d.y / 10) + "px)"; });
+      .attr("transform", function(d){ return "translate(" + x_scale(d.y) + ", " + (d.x + d.y / 10) + ")"; });
 
     var tooltip = d3.select("div#base")
                     .append('div')
-                    .attr('class', 'tooltip');
+                    .attr('class', 'around-text-tip');
 
     $('.delete').click(function(e){
       var name = $(this).parent().attr("data-name");
@@ -170,4 +175,10 @@ d3.json("input.json", function(json) {
         d3.selectAll('path.link[data-target="' + n + '"]').remove();
       });
     });
+});
+
+$('#source-area div').hide();
+
+$('#source-area-toggle').click(function(){
+  $('#source-area div').toggle();
 });
