@@ -5,7 +5,8 @@ var margin = {top: 10, right: 200, bottom: 10, left: 40},
     offset_buttom = 300;
 
 var svg = d3.select("body")
-            .append("div.base")
+            .append("div")
+            .attr('class', 'base')
             .append("svg")
             .attr("width", width + margin.left + margin.right + offset_right)
             .attr("height", height + margin.top + margin.bottom + width/10 + offset_buttom);
@@ -59,7 +60,8 @@ var rails_directory_hue = d3.scale.ordinal()
 
 var icon = function(name){
   switch(name){
-    case "is_filter_def": return "public/images/filter.png";
+    case "is_filter_def": return "images/filter.png";
+    case "is_action":     return "images/action.png";
     default: return null;
   }
 }
@@ -83,7 +85,7 @@ d3.json("input.json", function(json) {
   var links = tree.links(nodes);
 
   var font_size = 10;
-  var icon_size = 13;
+  var icon_size = 20;
 
   base.selectAll("path.link")
      .data(links)
@@ -140,17 +142,25 @@ d3.json("input.json", function(json) {
 
            // -- icon -------------------------
            d3.select(this)
+             .selectAll(".icon")
+             .data(_.compact([
+                 d.is_action     ? icon("is_action") : null,
+                 d.is_filter_def ? icon("is_filter_def") : null,
+             ]))
+             .enter()
              .append("image")
-             .attr("x", "-" + icon_size)
+             .attr("class", "icon")
+             .attr("x", function(e, i){ return "-" + icon_size*(i+1); })
              .attr("y", "-" + icon_size/2)
              .attr("width", icon_size)
              .attr("height", icon_size)
-             .attr("opacity", 0.3)
-             .attr("xlink:href", function(e){ return d.is_filter_def ? icon("is_filter_def") : "" });
+             .attr("opacity", 0.7)
+             .attr("xlink:href", function(e){ return e });
       })
       .attr("transform",  function(d){ return "translate(" + x_scale(d.y) + ",  " + (d.x + d.y / 10) + ")"; });
 
     var tooltip = d3.select("body")
                     .append('div')
                     .attr('class', 'tooltip');
+
 });
