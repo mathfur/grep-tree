@@ -137,7 +137,7 @@ d3.json("input.json", function(json) {
                             return tooltip.style("visibility", "hidden");
                         })
                         .on("click", function(text){
-                           $('#fname-lnum-for-copy').val(d.fname + ":" + d.lnum);
+                           $('#fname-lnum-for-copy').val(d.fname + ":" + d.lnum).select();
                         });
 
            // -- icon -------------------------
@@ -162,5 +162,4 @@ d3.json("input.json", function(json) {
     var tooltip = d3.select("body")
                     .append('div')
                     .attr('class', 'tooltip');
-
 });
