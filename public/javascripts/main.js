@@ -111,8 +111,10 @@ d3.json("input.json", function(json) {
                         .style("height", font_size)
                         .style("font-size", font_size)
                         .style("background-color", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
-                        .text(function(t){
-                           return d.label || (((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : '') + " --- " + d.corners);
+                        .html(function(t){
+                           var checkbox = "<input type='checkbox'/>";
+                           var label = d.label || (((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : '') + " --- " + d.corners);
+                           return checkbox + label;
                         })
                         .on("mouseover", function(){
                             return tooltip.style("visibility", "visible");
