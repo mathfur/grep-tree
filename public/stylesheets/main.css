@@ -4,10 +4,10 @@ body {
 }
 
 svg {
-  background: -webkit-linear-gradient(top,  #f8f8ff,  #fff);       /* Safari 5.1+,  Chrome 10+,  iOS Safari 5.1+,  Android 4.0+ */
-  background:    -moz-linear-gradient(top,  #f8f8ff,  #fff);       /* Firefox 3.6-15.0 */
-  background:      -o-linear-gradient(top,  #f8f8ff,  #fff);       /* Opera 11.10-12.10 */
-  background:         linear-gradient(to bottom,  #f8f8ff,  #fff); /* IE10,  Firefox 16.0+,  Opera 12.50+ */
+  background: -webkit-linear-gradient(top,  #f0f0ff,  #fff);       /* Safari 5.1+,  Chrome 10+,  iOS Safari 5.1+,  Android 4.0+ */
+  background:    -moz-linear-gradient(top,  #f0f0ff,  #fff);       /* Firefox 3.6-15.0 */
+  background:      -o-linear-gradient(top,  #f0f0ff,  #fff);       /* Opera 11.10-12.10 */
+  background:         linear-gradient(to bottom,  #f0f0ff,  #fff); /* IE10,  Firefox 16.0+,  Opera 12.50+ */
 }
 
 div#base {
