@@ -92,6 +92,8 @@ d3.json("input.json", function(json) {
      .enter()
      .append("path")
      .attr("class", "link")
+     .attr("data-source", function(d){ return d.source.name; })
+     .attr("data-target", function(d){ return d.target.name; })
      .attr("d", function(d){
          return diagonal(d);
       });
@@ -108,6 +110,7 @@ d3.json("input.json", function(json) {
            var text = d3.select("body")
                         .append("span")
                         .attr("class", "label")
+                        .attr("data-name", d.name)
                         .style("top", function(e){  return margin.top  + (d.x + d.y/10) + offset_x + "px"; })
                         .style("left", function(e){ return margin.left + x_scale(d.y)   + offset_y + "px"; })
                         .style("height", font_size)
@@ -115,8 +118,9 @@ d3.json("input.json", function(json) {
                         .style("background-color", function(e){ return d3.hsl(rails_directory_hue(d.rails_directory), 1, 0.5) })
                         .html(function(t){
                            var checkbox = "<input type='checkbox'/>";
+                           var delete_button = "<div class='delete genericon genericon-close'></div>";
                            var label = d.label || (((d.fname && d.lnum) ? (d.fname + ":" + d.lnum) : '') + " --- " + d.corners);
-                           return checkbox + label;
+                           return checkbox + delete_button + label;
                         })
                         .on("mouseover", function(){
                             return tooltip.style("visibility", "visible");
@@ -150,6 +154,7 @@ d3.json("input.json", function(json) {
              .enter()
              .append("image")
              .attr("class", "icon")
+             .attr("data-name", d.name)
              .attr("x", function(e, i){ return "-" + icon_size*(i+1); })
              .attr("y", "-" + icon_size/2)
              .attr("width", icon_size)
@@ -162,4 +167,16 @@ d3.json("input.json", function(json) {
     var tooltip = d3.select("body")
                     .append('div')
                     .attr('class', 'tooltip');
+
+    $('.delete').click(function(e){
+      var name = $(this).parent().attr("data-name");
+
+      ascendants(json, name, function(n){
+        $('[data-name="' + n + '"]').hide();
+        console.log(n);
+        d3.selectAll('path.link[data-source="' + n + '"]').remove();
+        d3.selectAll('path.link[data-target="' + n + '"]').remove();
+      });
+
+    });
 });

@@ -58,3 +58,18 @@ input#fname-lnum-for-copy {
   width: 800px;
   margin: 3px;
 }
+
+div.delete {
+  line-height: 17px;
+  border-width: 0px;
+  border-radius: 4px;
+  background-color: #F1F1E9;
+  border-shadow: #F1F1E9 0px 1px 0px 0px;
+  margin-top: 2px;
+  margin-right: 4px;
+}
+
+.genericon {
+  text-align: center;
+  font-size: 15px;
+}

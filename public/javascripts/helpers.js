@@ -13,3 +13,14 @@ function getParam(key){
 function strToCode(str, max){
   return +d3.range(str.length).map(function(i){ return str[i].charCodeAt().toString() }).join("") % max
 }
+
+function ascendants(json, name, handler){
+  if(!name || json.name == name){
+    handler(json.name);
+    name = null;
+  }
+
+  _.each(json.children, function(child){
+    return ascendants(child, name, handler);
+  });
+}
