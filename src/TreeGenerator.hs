@@ -37,8 +37,8 @@ type TreeGenerator a = WriterT [Text] CachedIO a
  
 searchAndGetTree :: FilePath -> Int -> Pattern -> IO (Text, [Text])
 searchAndGetTree wdir depth pattern = do
-    (trees, err_files) <- runTreeGenerator $ wordToTree wdir depth pattern
-    output_trees <- convertToOutputTree trees -- TODO: あとで直す
+    (trees, err_files) <- runTreeGenerator $ wordToTree wdir depth pattern Nothing
+    output_trees <- convertToOutputTree trees
     let jsn = jsonToText $ AllTree {
                              nameA = "main",
                              primary_wordA = Just pattern,
@@ -53,12 +53,12 @@ searchAndGetTree wdir depth pattern = do
 runTreeGenerator :: TreeGenerator [Tree] -> IO ([Tree], [Text])
 runTreeGenerator x = fst <$> (runStateT (runWriterT x) (M.fromList []))
 
-wordToTree :: FilePath -> Int -> Pattern -> TreeGenerator [Tree]
-wordToTree _ 0 _ = return []
-wordToTree wdir depth pattern = do
+wordToTree :: FilePath -> Int -> Pattern -> Maybe Pattern -> TreeGenerator [Tree]
+wordToTree _ 0 _ _ = return []
+wordToTree wdir depth pattern fname_pattern = do
     (results, errs) <- lift $ grepCommand 300 wdir pattern
     tell errs
-    let results' = catMaybes $ map parseGrepResult results
+    let results' = filter (\(path, _, _) -> hitPattern fname_pattern path) $ catMaybes $ map parseGrepResult results
     catMaybes <$> (forM results' (\(path, ln, _) -> do
         let abs_path = wdir </> path
         cnt <- readFileThroughCache abs_path
@@ -72,15 +72,22 @@ wordToTree wdir depth pattern = do
             NoObjective -> return $ Just common_tree
             WordObjective next_word -> (do
               is_action_ <- isAction wdir path next_word
-              ts <- if (not is_action_ && not is_filter_def_) then wordToTree wdir (depth - 1) next_word
+              ts <- if (not is_action_ && not is_filter_def_) then wordToTree wdir (depth - 1) next_word Nothing
                                                               else return []
               let ts_without_me = case objecive_lnum of
                                     Nothing -> ts
                                     Just lnum_ -> filter (not . is_myself path (lnum_ + 1)) ts
               return $ Just ( common_tree&primary_word.~(Just next_word)&is_action.~is_action_&is_filter_def.~is_filter_def_&children.~ts_without_me) )
-            RegexpObjective next_pattern -> (do
-              ts <- wordToTree wdir (depth - 1) next_pattern
+            RegexpObjective fname_pattern' next_pattern -> (do
+              ts <- wordToTree wdir (depth - 1) next_pattern fname_pattern'
               return $ Just ( common_tree&primary_word.~(Just next_pattern)&children.~ts ))))
+
+hitPattern :: Maybe Pattern -> FilePath -> Bool
+hitPattern Nothing _       = True
+hitPattern (Just pat) path = ((unpack $ "/" ++ pat ++ "_") `isPrefixOf` path')
+                          || ((unpack $ "/" ++ pat ++ "/") `isPrefixOf` path')
+  where
+    path' = encodeString path
 
 is_myself :: FilePath -> Int -> Tree -> Bool
 is_myself path ln tree = (path == _fname tree) && (ln == _lnum tree)
@@ -128,7 +135,7 @@ parseGrepResult line
 -- |
 --
 -- >>> getPrimaryWord (map pack ["<div>", "  <%= foo %>", "</div>"]) 1 (fromText $ pack "/foo/bar.html.erb")
--- (RegexpObjective "render.*bar",Nothing,[])
+-- (RegexpObjective (Just "/foo") "render.*bar",Nothing,[])
 --
 -- >>> getPrimaryWord (map pack ["def foo", "  print 123", "end"]) 1 (fromText $ pack "/foo/bar.rb")
 -- (WordObjective "foo",Just 0,[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
@@ -140,7 +147,7 @@ getPrimaryWord :: [Line] -> Int -> FilePath -> (Objective, Maybe Int, [Corner])
 getPrimaryWord ls dpt path = case (extension path) of
    Nothing -> (NoObjective, Nothing, [])
    Just x
-     | (x == "erb") || (x == "rhtml") -> (RegexpObjective $ "render.*" `mappend` basename_val, Nothing, [])
+     | (x == "erb") || (x == "rhtml") -> (RegexpObjective fname_pattern $ "render.*" `mappend` basename_val, Nothing, [])
      | (x == "js")                    -> case primary_corner of
                                            Just x' -> (wordToObj $ getWord x', primary_lnum, all_corners)
                                            Nothing -> (NoObjective, primary_lnum, all_corners)
@@ -153,6 +160,7 @@ getPrimaryWord ls dpt path = case (extension path) of
    where
      (primary_corner, primary_lnum, all_corners) = getCorners ls dpt
      basename_val = dropFirstUnderScore $ toText' $ basename path
+     fname_pattern = Just $ ("/" :: Text) ++ ((toText' $ dirname path) :: Text)
 
 isAction :: FilePath -> FilePath -> Word -> TreeGenerator Bool
 isAction wdir path w = do

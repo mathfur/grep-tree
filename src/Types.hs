@@ -24,7 +24,7 @@ type NamedRoute = Text
 type ControllerName = Text
 type ActionName = Text
 
-data Objective = RegexpObjective Pattern
+data Objective = RegexpObjective (Maybe Pattern) Pattern
                | WordObjective Word
                | NoObjective
                deriving (Show, Eq)
