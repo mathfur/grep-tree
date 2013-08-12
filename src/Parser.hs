@@ -77,7 +77,7 @@ http_method ::: Text
 
 -- e.g. pages GET /pages(.:format) {:action=>"index", :controller=>"pages"}
 route_line :: RailsRoute
-  = identifier http_method [^ ]+ "{:action=>\"" identifier "\"," ":controller=>\"" identifier "\"}" { RailsRoute $1 $2 (pack $3) $5 $4 }
+  = (!http_method . )* http_method [^ ]+ "{:controller=>\"" identifier "\"," ":action=>\"" identifier "\"}" { RailsRoute $2 (pack $3) $4 $5 }
 
 -- filter
 
@@ -122,8 +122,14 @@ getKind input = fromRight $ parseString line "<stdin>" $ unpack input
 -- >>> parseRakeRouteLine []
 -- []
 --
--- >>> parseRakeRouteLine (map pack ["pages GET /pages(.:format) {:action=>\"index\", :controller=>\"pages\"}"])
--- [RailsRoute {namedRoute = "pages", httpMethod = "GET", routeMap = "/pages(.:format)", controllerName = "pages", actionName = "index"}]
+-- >>> parseRakeRouteLine (map pack ["pages GET /pages(.:format) {:controller=>\"pages\", :action=>\"index\"}"])
+-- [RailsRoute {httpMethod = "GET", routeMap = "/pages(.:format)", controllerName = "pages", actionName = "index"}]
+--
+-- >>> parseRakeRouteLine (map pack ["bookmarks GET /bookmarks(.:format) {:controller=>\"bookmarks\", :action=>\"index\"}"])
+-- [RailsRoute {httpMethod = "GET", routeMap = "/bookmarks(.:format)", controllerName = "bookmarks", actionName = "index"}]
+--
+-- >>> parseRakeRouteLine (map pack ["          POST /bookmarks(.:format) {:controller=>\"bookmarks\", :action=>\"create\"}"])
+-- [RailsRoute {httpMethod = "POST", routeMap = "/bookmarks(.:format)", controllerName = "bookmarks", actionName = "create"}]
 --
 parseRakeRouteLine :: [Line] -> [RailsRoute]
 parseRakeRouteLine input = rights $ map ((parseString route_line "<stdin>") . unpack) input

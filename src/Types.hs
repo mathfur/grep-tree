@@ -82,7 +82,6 @@ data AllTree = AllTree {
                }
 
 data RailsRoute = RailsRoute {
-                    namedRoute :: NamedRoute,
                     httpMethod :: Text,
                     routeMap :: Text,
                     controllerName :: ControllerName, -- e.g. users_controller
