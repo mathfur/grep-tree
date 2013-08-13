@@ -13,9 +13,11 @@ import TreeGenerator
 
 main :: IO ()
 main = do
-    (search_word, depth, output_fname, wdir) <- getOpt
-    (jsn, err_files) <- searchAndGetTree wdir depth search_word
-    writeFile output_fname jsn
+    (search_word, depth, sourcelines, output_fname, wdir) <- getOpt
+    (jsn, err_files) <- searchAndGetTree wdir depth sourcelines search_word
+    case output_fname of
+      Just fname -> writeFile fname jsn
+      Nothing -> putStrLn jsn
 
     when (0 < length err_files) $ do
       putStrLn "Error at:"

@@ -19,7 +19,7 @@ Usage
 -----
  1. $ cd (TARGET DIR)
  1. $ rake routes > rake_routes
- 2. $ grep-tree --wordopt=(SEARCH WORD) --depthopt=(SEARCH DEPTH) --outputopt=input.json --wdiropt=(TARGET DIR)
+ 2. $ grep-tree --depth=3 --output=/foo/bar/input.json (SEARCHWORD)
  3. copy input.json to public directory under grep-tree project.
  4. Open public/index.html by browser.
 

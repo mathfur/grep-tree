@@ -10,29 +10,34 @@ module CommandLine (
 import BasicPrelude
 import Data.Text (pack)
 import Filesystem.Path.CurrentOS (decodeString)
-import System.Console.CmdArgs hiding (name)
+import System.Console.CmdArgs
 
 data Option  = Option {
-               word :: String,
-               depth :: Int,
-               output :: String,
-               wdir :: String
+               depth       :: Maybe Int,
+               sourcelines :: Maybe Int,
+               output      :: Maybe String,
+               wdir        :: Maybe String,
+               word        :: String
              } deriving (Data, Show, Typeable)
 
 option :: Option
 option = Option {
-    word   = def &= typ "STRING",
-    depth  = def &= typ "INTEGER",
-    output = def &= typ "FILE",
-    wdir   = def &= typ "DIR"
+    depth        = def &= typ "INTEGER" &= help "Grep depth",
+    sourcelines  = def &= typ "INTEGER" &= help "The size of source to show in tooltip",
+    output       = def &= typ "FILE"    &= help "Json file name",
+    wdir         = def &= typ "DIR"     &= help "Directory where to grep",
+    word         = def &= argPos 0
 } &= program "grep-tree"
 
-getOpt :: IO (Text, Int, FilePath, FilePath)
+getOpt :: IO (Text, Int, Int, Maybe FilePath, FilePath)
 getOpt = do
+    let default_depth = 3
+    let default_sourcelines = 24
     opts <- cmdArgs option
     return (
              pack $ word opts,
-             depth opts,
-             decodeString $ output opts,
-             decodeString $ wdir opts
+             default_depth `fromMaybe` (depth opts),
+             default_sourcelines `fromMaybe` (sourcelines opts),
+             decodeString <$> output opts,
+             decodeString ("." `fromMaybe` (wdir opts))
            )

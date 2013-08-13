@@ -35,9 +35,9 @@ import Cache
 
 type TreeGenerator a = WriterT [Text] CachedIO a
  
-searchAndGetTree :: FilePath -> Int -> Pattern -> IO (Text, [Text])
-searchAndGetTree wdir depth pattern = do
-    (trees, err_files) <- runTreeGenerator $ wordToTree wdir depth pattern Nothing
+searchAndGetTree :: FilePath -> Int -> Int -> Pattern -> IO (Text, [Text])
+searchAndGetTree wdir depth sourcelines pattern = do
+    (trees, err_files) <- runTreeGenerator $ wordToTree wdir depth sourcelines pattern Nothing
     output_trees <- convertToOutputTree trees
     let jsn = jsonToText $ AllTree {
                              nameA = "main",
@@ -53,9 +53,9 @@ searchAndGetTree wdir depth pattern = do
 runTreeGenerator :: TreeGenerator [Tree] -> IO ([Tree], [Text])
 runTreeGenerator x = fst <$> (runStateT (runWriterT x) (M.fromList []))
 
-wordToTree :: FilePath -> Int -> Pattern -> Maybe Pattern -> TreeGenerator [Tree]
-wordToTree _ 0 _ _ = return []
-wordToTree wdir depth pattern fname_pattern = do
+wordToTree :: FilePath -> Int -> Int -> Pattern -> Maybe Pattern -> TreeGenerator [Tree]
+wordToTree _ 0 _ _ _ = return []
+wordToTree wdir depth sourcelines pattern fname_pattern = do
     (results, errs) <- lift $ grepCommand 300 wdir pattern
     tell errs
     let results' = filter (\(path, _, _) -> hitPattern fname_pattern path) $ catMaybes $ map parseGrepResult results
@@ -63,7 +63,7 @@ wordToTree wdir depth pattern fname_pattern = do
         let abs_path = wdir </> path
         cnt <- readFileThroughCache abs_path
         let (objective, objecive_lnum, all_corners) = getPrimaryWord cnt (ln - 1) abs_path
-        let text_range = 12
+        let text_range = sourcelines `div` 2
         let source = slice (ln - text_range) (ln + text_range) $ zip [1..] cnt
         let current_line = cnt !! ln
         let is_filter_def_ = isFilterDefinition current_line
@@ -72,14 +72,14 @@ wordToTree wdir depth pattern fname_pattern = do
             NoObjective -> return $ Just common_tree
             WordObjective next_word -> (do
               is_action_ <- isAction wdir path next_word
-              ts <- if (not is_action_ && not is_filter_def_) then wordToTree wdir (depth - 1) next_word Nothing
+              ts <- if (not is_action_ && not is_filter_def_) then wordToTree wdir (depth - 1) sourcelines next_word Nothing
                                                               else return []
               let ts_without_me = case objecive_lnum of
                                     Nothing -> ts
                                     Just lnum_ -> filter (not . is_myself path (lnum_ + 1)) ts
               return $ Just ( common_tree&primary_word.~(Just next_word)&is_action.~is_action_&is_filter_def.~is_filter_def_&children.~ts_without_me) )
             RegexpObjective fname_pattern' next_pattern -> (do
-              ts <- wordToTree wdir (depth - 1) next_pattern fname_pattern'
+              ts <- wordToTree wdir (depth - 1) sourcelines next_pattern fname_pattern'
               return $ Just ( common_tree&primary_word.~(Just next_pattern)&children.~ts ))))
 
 hitPattern :: Maybe Pattern -> FilePath -> Bool
