@@ -84,8 +84,8 @@ wordToTree wdir depth sourcelines pattern fname_pattern = do
 
 hitPattern :: Maybe Pattern -> FilePath -> Bool
 hitPattern Nothing _       = True
-hitPattern (Just pat) path = ((unpack $ "/" ++ pat ++ "_") `isPrefixOf` path')
-                          || ((unpack $ "/" ++ pat ++ "/") `isPrefixOf` path')
+hitPattern (Just pat) path = ((unpack $ "/" ++ pat ++ "_") `isInfixOf` path')
+                          || ((unpack $ "/" ++ pat ++ "/") `isInfixOf` path')
   where
     path' = encodeString path
 
@@ -135,7 +135,7 @@ parseGrepResult line
 -- |
 --
 -- >>> getPrimaryWord (map pack ["<div>", "  <%= foo %>", "</div>"]) 1 (fromText $ pack "/foo/bar.html.erb")
--- (RegexpObjective (Just "/foo") "render.*bar",Nothing,[])
+-- (RegexpObjective (Just "foo") "render.*bar",Nothing,[])
 --
 -- >>> getPrimaryWord (map pack ["def foo", "  print 123", "end"]) 1 (fromText $ pack "/foo/bar.rb")
 -- (WordObjective "foo",Just 0,[Corner (RbMethod (Just "foo")) "def foo",Corner CurrentLine "  print 123",Corner RbEnd "end"])
@@ -160,7 +160,7 @@ getPrimaryWord ls dpt path = case (extension path) of
    where
      (primary_corner, primary_lnum, all_corners) = getCorners ls dpt
      basename_val = dropFirstUnderScore $ toText' $ basename path
-     fname_pattern = Just $ ("/" :: Text) ++ ((toText' $ dirname path) :: Text)
+     fname_pattern = Just $ toText' $ dirname path
 
 isAction :: FilePath -> FilePath -> Word -> TreeGenerator Bool
 isAction wdir path w = do
